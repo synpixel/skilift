@@ -337,7 +337,7 @@ local function load_session<T>(self: Store<T>, key: string): Session<T>
         LOG(`Starting pull for {store.Name}:{key}`)
         local value: StoredData<T>, db_key_info: DataStoreKeyInfo = exponential_backoff(function()
             return store:UpdateAsync(key, update)
-        end, 3, 30)
+        end, 3, 20)
 
         if transaction_status_bad then return end
         LOG(`Finished pull for {store.Name}:{key}`)
