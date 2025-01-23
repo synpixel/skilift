@@ -23,6 +23,7 @@ local function success()
 end
 
 skilift.transaction(success)
+```
 ```luau
 -- good, do this!
 
