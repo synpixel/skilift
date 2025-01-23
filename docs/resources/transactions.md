@@ -1,6 +1,6 @@
 # Transactions
 
-Skilift provides built-in transactions as part of it's API. Transactions allow for editing multiple keys at the same time securely. This allows developers to easily write secure code for trading, marketplaecs, gifting etc.
+Skilift provides built-in transactions as part of it's API. Transactions allow for editing multiple keys at the same time securely in a way where one failing results in all other updates failing. This allows developers to easily write secure code for trading, marketplaecs, gifting etc.
 
 ## How do transactions work?
 
