@@ -8,7 +8,7 @@ Transactions in skilift are baesd on the [two-phase commit protocol](https://en.
 
 ## Escrowing
 
-Escrowing is important for performing transactions safely. As transactions take time to apply, it's important to first escrow the goods before performing the transaction. In that case, when the transaction succeeds the goods have already been taken, so you only need to give the goods back.
+Escrowing is important for performing transactions safely. As transactions take time to apply, it's important to first escrow the goods before performing the transaction. In that case, when the transaction succeeds the goods have already been taken, so you only need to give the goods to the player. In the case it fails, we can return the escrowed goods.
 
 Since skilift also supports running actions when the transaction fails, it's important that you return the escrowed goods if it fails.
 
