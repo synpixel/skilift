@@ -5,8 +5,8 @@ import { tabsMarkdownPlugin } from 'vitepress-plugin-tabs'
 export default defineConfig({
 
     title: "skilift",
-    titleTemplate: ":title - A debugger for JECS",
-    description: "A debugger for JECS",
+    titleTemplate: ":title - Datastore library",
+    description: "Datastore library without any session locking and with transactions!",
     base: "/skilift/",
     head: [
         ["link", { rel: "icon", href: "/skilift/logo.svg" }],
