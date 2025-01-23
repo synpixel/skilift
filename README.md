@@ -25,8 +25,8 @@ local function decrease_money(value: PlayerData, n: number)
  return value
 end
 
-skilift.action.regular(increase_money)
-skilift.action.regular(decrease_money)
+skilift.action.normal(increase_money)
+skilift.action.normal(decrease_money)
 skilift.action.transaction(increase_money, "increase_money")
 skilift.action.transaction(decrease_money, "decrease_money")
 
@@ -48,6 +48,8 @@ end)
 session2:updated(function(value)
     print(session2.key, "now has", value.money, "money")
 end)
+
+session1:patch(increase_money, 20)
 
 task.wait(1)
 
