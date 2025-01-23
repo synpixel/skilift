@@ -35,13 +35,18 @@ local function update<T>(
     db_key_info: DataStoreKeyInfo?
 ): StoredData<T>?
     if db_key_info == nil then
-        stored = session._cached
+        stored = {
+            pending_transactions = {},
+            migrations_performed = {},
+            data = session._options.default_data()
+        }
     end
 
     LOG(`Applying {#changes} changes to {session._name}`)
 
     for id, data in stored.pending_transactions do
         local status: "completed" | "failed" | "unknown" = transaction.is_transaction_complete(id)
+        LOG(`{session._name}: Pending Transaction Status {id}: {status}`)
         
         if status == "completed" then
             for _, action in data.success do
@@ -61,6 +66,7 @@ local function update<T>(
     end
 
     for id, data in pending_transactions do
+        LOG(`Added transaction {id} to {session._name}`)
         stored.pending_transactions[id] = data
     end
 
@@ -83,7 +89,7 @@ local function pull_auto<T>(session: Session<T>, transactions: { [TransactionId]
     session._next_save_opportunity = math.huge
     budget.delay_until_meets_budget("update", 5)
 
-    local ok, result = pcall(function()
+    local ok, result: StoredData<T> = pcall(function()
         return store:UpdateAsync(key, function(value, keyinfo)
             return update(session, swap, transactions, value, keyinfo)
         end)
@@ -96,7 +102,7 @@ local function pull_auto<T>(session: Session<T>, transactions: { [TransactionId]
     end
 
     session._cached = result
-    session._updated(result)
+    session._updated(result.data)
 end
 
 local function force_pull<T>(session: Session<T>)
@@ -105,7 +111,7 @@ local function force_pull<T>(session: Session<T>)
 
     session._next_save_opportunity = math.huge
 
-    local result = retry.regular_retry(function()
+    local result: StoredData<T> = retry.regular_retry(function()
         budget.delay_until_meets_budget("update", 5)
         return store:UpdateAsync(key, function(value, keyinfo)
             return update(session, swap, value, keyinfo)
@@ -114,7 +120,7 @@ local function force_pull<T>(session: Session<T>)
 
     session._next_save_opportunity = os.clock() + AUTOSAVE_DELAY
     session._cached = result
-    session._updated(result)
+    session._updated(result.data)
 end
 
 local function thread<T>(session: Session<T>)

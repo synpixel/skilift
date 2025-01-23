@@ -18,7 +18,7 @@ local function request_for_transaction(id: TransactionId)
         return TRANSACTION_STORE:GetAsync(id)
     end)
 
-    cached_transaction_status[result] = if result then true else false
+    cached_transaction_status[id] = if result then true else false
 end
 
 local function is_transaction_complete(id: TransactionId): CompletionStatus

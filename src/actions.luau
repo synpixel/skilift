@@ -39,7 +39,7 @@ end
 
 local function create_transaction_record(action: Action, ...: any)
     ASSERT_ACTION(action)
-    return { transaction_actions[action], ... }
+    return { fn = transaction_actions[action], values = {...} }
 end
 
 local function obtain_transaction_action(name: string)
