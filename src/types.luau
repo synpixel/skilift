@@ -1,0 +1,90 @@
+export type Action<T=any, U...=...any> = (old: T, U...) -> T
+export type JSON = string | number | boolean | buffer | { JSON } | { [string]: JSON }
+
+export type StoreOptions<T> = {
+    --- The name of the Data Store
+    name: string,
+    --- The scope of the Data Store
+    scope: string?,
+    --- The default data that will automatically be available.
+    default_data: () -> T,
+}
+
+export type Store<T> = {
+    _store: DataStore,
+    _options: StoreOptions<T>,
+
+    --- Starts a new safe session that frequently polls for updates.
+    load: (Store<T>, key: string) -> Session<T>,
+    --- Returns a object used to gain insight into a key without polling for new
+    --- data and applying updates.
+    view: (Store<T>, key: string) -> View<T>
+}
+
+export type View<T> = {
+    --- Pulls for the latest version and returns an immutable copy
+    latest: (View<T>) -> T?,
+    --- Pulls for a version at a given time.
+    timestamp: (View<T>, at: number) -> T?,
+    --- Pulls for a vesrion with the given key.
+    version: (View<T>, version: string) -> T?,
+}
+
+export type Session<T> = {
+    _name: string,
+    _store: DataStore,
+    _options: StoreOptions<T>,
+    --- A list of changes that haven't been pushed yet.
+    _changes: { Action },
+    --- Waiting to sync transactions until next opportunity
+    _pending_transactions: { [TransactionId]: { { JSON } } },
+    --- When the next refresh happens.
+    _next_save_opportunity: number,
+    --- Runs to reconcile the Datastores into the data.
+    _updated: (T) -> (),
+    --- The currently stored data.
+    _cached: StoredData<T>,
+    --- The thread responsible for autosaving.
+    _thread: thread,
+
+    key: string,
+
+    --- Patches with the given update function. Fails if the data is locked.
+    patch: <U...>(Session<T>, fn: Action<T, U...>, U...) -> (),
+    --- Binds a function to whenever the session receives updated data.
+    --- This should be reconciled into your own game state. When called, it will
+    --- run the function given immediately.
+    updated: (Session<T>, (T) -> ()) -> (),
+    --- Stops polling the datastore for data, and disables any patching. This
+    --- performs one more save. Releases the lock if it was locked.
+    stop: (Session<T>) -> (),
+
+    -- ---- SESSION LOCKING ADDENDUM ----
+    -- --- Locks data. This should only be used in cases where session locking is
+    -- --- required. When sesion locking, other servers are unable to edit the data.
+    -- --- This may error.
+    -- lock: (Session<T>, expires: number) -> (),
+    -- --- Steals a session from another server (if necessary) 
+    -- steal: (Session<T>) -> (),
+    -- --- Unlocks the session, allowing other servers to edit the data.
+    -- unlock: (Session<T>) -> (),
+}
+
+export type TransactionId = string
+
+export type TransactionInfo = {
+    uuid: TransactionId,
+    sessions: { [Session<any>]: true },
+}
+
+export type TransactionData = {
+    actions: { { JSON } }
+}
+
+export type StoredData<T> = {
+    pending_transactions: { [TransactionId]: TransactionData },
+    migrations_performed: { string },
+    data: T
+}
+
+return {}

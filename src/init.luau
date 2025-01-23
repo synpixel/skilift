@@ -61,6 +61,9 @@ export type Session<T> = {
     _store: DataStore,
     _options: StoreOptions<T>,
 
+    _pending_actions_for_transactions: { [TransactionId]: { { JSON } } },
+    
+
     key: string,
 
     --- Patches with the given update function. Fails if the data is locked.
