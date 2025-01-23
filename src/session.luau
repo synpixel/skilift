@@ -20,11 +20,32 @@ type TransactionInfo = types.TransactionInfo
 type TransactionAction = types.TransactionAction
 type TransactionData = types.TransactionData
 
+local function migrate<T>(session: Session<T>, stored: StoredData<T>)
+    local migrations = session._options.migrations
+
+    if #migrations == #stored.migrations_performed then return end
+    LOG(`{session._name}: Performing Migration`)
+    for i, migration in migrations do
+        if table.find(stored.migrations_performed, migration) then continue end
+        LOG(`{session._name}: Migration Step {migration.step}`)
+        stored.data = migration.migrate(stored.data)
+        table.insert(stored.migrations_performed, migration.step)
+    end
+end
+
 local function perform_transaction<T>(stored: StoredData<T>, action: TransactionAction)
     local fn = actions.obtain_transaction_action(action.fn)
     local values = action.values
 
     stored.data = fn(stored.data, unpack(values))
+end
+
+local function create_migrations_table(session: Session<any>)
+    local migrations = {}
+    for i, migration in session._options.migrations do
+        table.insert(migrations, migration.step)
+    end
+    return migrations
 end
 
 local function update<T>(
@@ -37,7 +58,7 @@ local function update<T>(
     if db_key_info == nil then
         stored = {
             pending_transactions = {},
-            migrations_performed = {},
+            migrations_performed = create_migrations_table(session),
             data = session._options.default_data()
         }
     end
@@ -64,6 +85,8 @@ local function update<T>(
             error("unhandled case")
         end
     end
+
+    migrate(session, stored)
 
     for id, data in pending_transactions do
         LOG(`Added transaction {id} to {session._name}`)
