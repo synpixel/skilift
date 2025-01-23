@@ -1,0 +1,11 @@
+[package]
+name = "alicesaidhi/skilift"
+description = "Lockless DataStore library"
+license = "MIT"
+version = "0.1.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+exclude = ["luau_packages", "lune_packages", "out", ".vscode", ".pesde", "build.project.json", "pesde.toml", "pesde.lock", "rokit.toml"]
+include = ["src", "default.project.json", "LICENSE"]
+
+[dependencies]
