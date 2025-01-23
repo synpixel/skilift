@@ -1,0 +1,13 @@
+{
+    "name": "skilift",
+
+    "tree": {
+        "$className": "DataModel",
+        
+        "ServerScriptService": {
+            "skilift": {
+                "$path": "src"
+            }
+        }
+    }
+}

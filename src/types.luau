@@ -8,6 +8,9 @@ export type StoreOptions<T> = {
     scope: string?,
     --- The default data that will automatically be available.
     default_data: () -> T,
+    --- Performs migrations in the given order. The version number is associated
+    --- with the index. It's important not to change any of the migrations. 
+    migrations: { {step: string, migrate: (any) -> (any)} },
 }
 
 export type Store<T> = {
