@@ -6,12 +6,14 @@ type BudgetUsage =
     | "get"
     | "get_version"
     | "update"
+    | "set"
 
 local function has_budget_and_delta(key: BudgetUsage, amount: number)
     local budget = DataStoreService:GetRequestBudgetForRequestType(
         if key == "get" then Enum.DataStoreRequestType.GetAsync
         elseif key == "get_version" then Enum.DataStoreRequestType.GetVersionAsync
         elseif key == "update" then Enum.DataStoreRequestType.UpdateAsync
+        elseif key == "set" then Enum.DataStoreRequestType.SetIncrementAsync
         else error(`{key} is not valid`)
     )
 

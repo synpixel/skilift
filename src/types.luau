@@ -36,8 +36,6 @@ export type Session<T> = {
     _options: StoreOptions<T>,
     --- A list of changes that haven't been pushed yet.
     _changes: { Action },
-    --- Waiting to sync transactions until next opportunity
-    _pending_transactions: { [TransactionId]: { { JSON } } },
     --- When the next refresh happens.
     _next_save_opportunity: number,
     --- Runs to reconcile the Datastores into the data.
@@ -74,11 +72,17 @@ export type TransactionId = string
 
 export type TransactionInfo = {
     uuid: TransactionId,
-    sessions: { [Session<any>]: true },
+    state: "success" | "failure",
+    sessions: { [Session<any>]: TransactionData },
 }
 
+export type TransactionAction = { fn: string, values: { JSON } }
+
+--- Data stored in the key, containing information about transactions that
+--- still need to be performed
 export type TransactionData = {
-    actions: { { JSON } }
+    success: { TransactionAction },
+    failure: { TransactionAction }
 }
 
 export type StoredData<T> = {

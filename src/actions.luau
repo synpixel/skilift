@@ -42,6 +42,12 @@ local function create_transaction_record(action: Action, ...: any)
     return { transaction_actions[action], ... }
 end
 
+local function obtain_transaction_action(name: string)
+    local action = transaction_names[name]
+    if not action then THROW("unknown_transaction_action", name) end
+    return action
+end
+
 return {
     ASSERT_ACTION = ASSERT_ACTION,
     
@@ -50,5 +56,7 @@ return {
 
     create_record = create_record,
     create_transaction_record = create_transaction_record,
+
+    obtain_transaction_action = obtain_transaction_action
 
 }

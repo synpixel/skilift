@@ -11,9 +11,11 @@ local ERRORS = {
     action_attempt_transaction = {
         msg = `Action at %s:%s can only be used for patching within transactions.`
     },
-
     cannot_make_action = {
         msg = `Unable to register a new action after the first session has been started.`
+    },
+    unknown_transaction_action = {
+        msg = `Unable to perform an action named %s?`
     }
 }
 
@@ -23,6 +25,7 @@ type Errors =
     | "action_invalid_function"
     | "action_attempt_transaction"
     | "cannot_make_action"
+    | "unknown_transaction_action"
 
 local function THROW(err: Errors, ...: string)
     error(string.format(ERRORS[err].msg, ...), 3)
