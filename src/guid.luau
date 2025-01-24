@@ -1,10 +1,11 @@
-local function generate_guid()
-    local b = buffer.create(16)
+local MAP = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"}
 
-    buffer.writeu32(b, 0, math.random(-2147483647, 2147483647))
-    buffer.writeu32(b, 4, math.random(-2147483647, 2147483647))
-    buffer.writeu32(b, 8, math.random(-2147483647, 2147483647))
-    buffer.writeu32(b, 12, math.random(-2147483647, 2147483647))
+local function generate_guid()
+    local b = buffer.create(32)
+
+    for i = 0, 31 do
+        buffer.writeu8(b, i, string.byte(MAP[math.random(1, 16)]))
+    end
 
     return buffer.tostring(b)
 end
