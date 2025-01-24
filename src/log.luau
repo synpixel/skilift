@@ -1,6 +1,6 @@
 
 local function LOG(...)
-    print("[SKYLIFT]:", ...)
+    print("[skilift]:", ...)
 end
 
 return LOG
