@@ -33,12 +33,10 @@ local function register_transaction_action(action: Action, name: string)
 end
 
 local function create_record(action: Action, ...: any)
-    ASSERT_ACTION(action)
     return { action, ... }
 end
 
 local function create_transaction_record(action: Action, ...: any)
-    ASSERT_ACTION(action)
     return { fn = transaction_actions[action], values = {...} }
 end
 

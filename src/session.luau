@@ -164,14 +164,15 @@ local function thread<T>(session: Session<T>)
 end
 
 local function patch_transaction<T, U...>(session: Session<T>, fn: Action<T, U...>, ...: U...)
-    LOG(`Adding transaction action for {session._name}`)
     local transaction = flags.processing_transaction :: TransactionInfo
     local records = transaction.sessions[session] or { success = {}, failure = {} }
     local record = actions.create_transaction_record(fn, ...)
 
     if transaction.state == "failure" then
+        LOG(`Adding transaction action on failure "{record.fn}" for {session._name}`)
         table.insert(records.failure, record)
     elseif transaction.state == "success" then
+        LOG(`Adding transaction action on success "{record.fn}" for {session._name}`)
         table.insert(records.success, record)
     end
 
@@ -179,7 +180,7 @@ local function patch_transaction<T, U...>(session: Session<T>, fn: Action<T, U..
 end
 
 local function patch_regular<T, U...>(session: Session<T>, fn: Action<T, U...>, ...: U...)
-    LOG(`Performing action for {session._name}`)
+    LOG(`Performing "{debug.info(fn, "n")}" for {session._name}`)
     table.insert(session._changes, actions.create_record(fn, ...) )
     session._cached.data = fn(session._cached.data, ...)
     session._updated(session._cached.data)
@@ -243,4 +244,6 @@ return {
     load_session = load_session,
     pull_auto = pull_auto,
     force_pull = force_pull,
+    perform_transaction = perform_transaction,
+    patch_regular = patch_regular
 }

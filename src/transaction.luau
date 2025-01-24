@@ -7,6 +7,7 @@ local Session = require("./session")
 local budget = require("./budget")
 local LOG = require("./log")
 local task = require("./task")
+local actions = require("./actions")
 
 local TRANSACTION_NAME = "_$SKILIFT_TRANSACTION"
 local TRANSACTION_SCOPE = "global"
@@ -60,7 +61,15 @@ local function create_transaction(success: (() -> ()), failure: (() -> ())?)
         task.spawn(function()
             local ok = pcall(Session.pull_auto, session, { [uuid] = info })
             LOG(`{uuid}: STATUS {if ok then "SUCCESS" else "FAIL"}`)
-            if ok == false then failed += 1 end
+            if ok == false then
+                failed += 1
+                
+                -- we need to perform the failed actions
+                for _, action in info.failure do
+                    local fn = actions.obtain_transaction_action(action.fn)
+                    Session.patch_regular(session, fn, unpack(action.values))
+                end
+            end
             if ok == true then success += 1 end
         end) 
     end
@@ -88,7 +97,14 @@ local function create_transaction(success: (() -> ()), failure: (() -> ())?)
         
         return ok
     else
-        -- failed
+        -- now that the transaction is done, we can pull all data again
+        for session in transaction_info.sessions do
+            LOG(`{uuid}: Pulling {session._name}`)
+            task.spawn(function()
+                pcall(Session.pull_auto, session, {})
+            end)
+        end
+
         return false
     end 
 end
