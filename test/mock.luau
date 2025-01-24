@@ -84,7 +84,8 @@ type MockStoreSetOptions = {
 local SETTINGS = {
     current_time = os.time(),
     requests_frozen = false,
-    simulate_outage = false
+    simulate_outage = false,
+    total_requests_to_deny = 0
 }
 
 local datamodel = {
@@ -103,6 +104,17 @@ local time = table.freeze {
         return SETTINGS.current_time
     end
 }
+
+local function check_if_deny()
+    if SETTINGS.simulate_outage then
+        return true
+    elseif SETTINGS.total_requests_to_deny > 0 then
+        SETTINGS.total_requests_to_deny -= 1
+        return true
+    else
+        return false
+    end
+end
 
 local function toid(v: string|number): string
     return
@@ -193,7 +205,7 @@ local MockStore = {} do
                 coroutine.yield()
             end
             
-            if SETTINGS.simulate_outage then error("could not advance to next page", 2) end
+            if check_if_deny() then error("could not advance to next page", 2) end
             -- todo what if new entries are added after finished is reached
             if self.IsFinished then error("no more pages left", 2) end
 
@@ -294,7 +306,7 @@ local MockStore = {} do
         id = toid(id)
         if data == nil then error("cannot set data to nil", 2) end
 
-        if SETTINGS.simulate_outage then error("could not set data", 2) end
+        if check_if_deny() then error("could not set data", 2) end
 
         local key = self.data[id]
 
@@ -351,7 +363,7 @@ local MockStore = {} do
             coroutine.yield()
         end
 
-        if SETTINGS.simulate_outage then error("could not retrieve data", 2) end
+        if check_if_deny() then error("could not retrieve data", 2) end
 
         local key = self.data[id]
 
@@ -367,7 +379,7 @@ local MockStore = {} do
             coroutine.yield()
         end
 
-        if SETTINGS.simulate_outage then error("could not retrieve data", 2) end
+        if check_if_deny() then error("could not retrieve data", 2) end
 
         local key = self.data[id]
 
@@ -427,7 +439,7 @@ local MockStore = {} do
             coroutine.yield()
         end
 
-        if SETTINGS.simulate_outage then error("could not remove data", 2) end
+        if check_if_deny() then error("could not remove data", 2) end
 
         local key = self.data[id]
 
@@ -444,7 +456,7 @@ local MockStore = {} do
 
     function ListVersionsAsync(self: MockStore, id: string, dir: Enum.SortDirection?, min: number?, max: number?, size: number?): MockStoreVersionPages
         id = toid(id)
-        if SETTINGS.simulate_outage then error("could not update data", 2) end
+        if check_if_deny() then error("could not update data", 2) end
 
         local ndir = dir or DIRECTION_ASCENDING :: any
         local nmin = min or 0
@@ -567,6 +579,10 @@ return {
 
     set_jobid = function(id: string)
         datamodel.JobId = id
+    end,
+
+    deny_requests = function(n: number)
+        SETTINGS.total_requests_to_deny = n
     end,
 
     simulate_outage = function(f: boolean)
