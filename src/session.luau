@@ -153,14 +153,13 @@ local function thread<T>(session: Session<T>)
     while true do
         LOG("performing auto-save in", session._next_save_opportunity, "for", session._name)
         if session._next_save_opportunity > 0 then 
-            print("yielding")
             local dt = task.wait()
             session._next_save_opportunity -= dt
             continue
         end
         LOG("triggering auto-save for", session._name)
         local ok, err = pcall(pull_auto, session, {}) -- silence autosave error if emitted
-        if not ok then print(err) end
+        if not ok then warn(err) end
     end
 end
 

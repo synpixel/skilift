@@ -401,7 +401,6 @@ local MockStore = {} do
 
             newdata, newuserids, newmetadata = ycall(fn, data, info)
             if newdata == nil then return end
-            newdata = clone(newdata)
 
             if SETTINGS.requests_frozen then
                 push(self.queues[id], coroutine.running())
