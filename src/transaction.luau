@@ -1,11 +1,12 @@
-local DataStoreService = game:GetService("DataStoreService")
-local HttpService = game:GetService("HttpService")
+local DataStoreService = require("./datastoreservice")
 
+local guid = require("./guid")
 local flags = require("./flags")
 local types = require("./types")
 local Session = require("./session")
 local budget = require("./budget")
 local LOG = require("./log")
+local task = require("./task")
 
 local TRANSACTION_NAME = "_$SKILIFT_TRANSACTION"
 local TRANSACTION_SCOPE = "global"
@@ -15,7 +16,7 @@ type TransactionInfo = types.TransactionInfo
 type TransactionId = types.TransactionId
 
 local function create_transaction(success: (() -> ()), failure: (() -> ())?)
-    local uuid = HttpService:GenerateGUID()
+    local uuid = guid()
     LOG(`STARTING TRANSACTION ID {uuid}`)
     local transaction_info: TransactionInfo = {
         uuid = uuid,

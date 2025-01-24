@@ -1,4 +1,4 @@
-local DataStoreService = game:GetService("DataStoreService")
+local DataStoreService = require("./datastoreservice")
 
 local types = require("./types")
 local view = require("./view")

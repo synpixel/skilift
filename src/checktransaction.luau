@@ -1,7 +1,8 @@
-local DataStoreService = game:GetService("DataStoreService")
+local DataStoreService = require("./datastoreservice")
 
 local types = require("./types")
 local retry = require("./retry")
+local task = require("./task")
 
 local TRANSACTION_NAME = "_$SKILIFT_TRANSACTION"
 local TRANSACTION_SCOPE = "global"

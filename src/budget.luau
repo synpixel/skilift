@@ -1,4 +1,5 @@
-local DataStoreService = game:GetService("DataStoreService")
+local DataStoreService = require("./datastoreservice")
+local task = require("./task")
 
 local MINIMUM = 5
 
@@ -9,6 +10,8 @@ type BudgetUsage =
     | "set"
 
 local function get_budget(key: BudgetUsage)
+    if not game then return 1000 end
+    
     local budget = DataStoreService:GetRequestBudgetForRequestType(
         if key == "get" then Enum.DataStoreRequestType.GetAsync
         elseif key == "get_version" then Enum.DataStoreRequestType.GetVersionAsync

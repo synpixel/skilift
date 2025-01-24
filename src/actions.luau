@@ -57,6 +57,12 @@ return {
     create_record = create_record,
     create_transaction_record = create_transaction_record,
 
-    obtain_transaction_action = obtain_transaction_action
+    obtain_transaction_action = obtain_transaction_action,
+
+    _ = {
+        transaction_actions = transaction_actions,
+        transaction_names = transaction_names,
+        actions = actions
+    }
 
 }

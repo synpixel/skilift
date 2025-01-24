@@ -4,6 +4,7 @@ local retry = require("./retry")
 local LOG = require("./log")
 local actions = require("./actions")
 local flags = require("./flags")
+local task = require("./task")
 local transaction = require("./checktransaction")
 
 local AUTOSAVE_DELAY = 10
@@ -118,13 +119,14 @@ local function pull_auto<T>(session: Session<T>, transactions: { [TransactionId]
         end)
     end)
 
-    session._next_save_opportunity = os.clock() + AUTOSAVE_DELAY
+    session._next_save_opportunity = AUTOSAVE_DELAY
 
     if not ok then
         error(`Failed to auto-save {result}`)
     end
 
     session._cached = result
+    LOG(`{session._name} calling updated -`, debug.info(session._updated, "sl"))
     session._updated(result.data)
 end
 
@@ -137,19 +139,27 @@ local function force_pull<T>(session: Session<T>)
     local result: StoredData<T> = retry.regular_retry(function()
         budget.delay_until_meets_budget("update", 5)
         return store:UpdateAsync(key, function(value, keyinfo)
-            return update(session, swap, value, keyinfo)
+            return update(session, swap, {}, value, keyinfo)
         end)
     end)
 
-    session._next_save_opportunity = os.clock() + AUTOSAVE_DELAY
+    session._next_save_opportunity = AUTOSAVE_DELAY
     session._cached = result
+    LOG(`{session._name} calling updated on force`, debug.info(session._updated, "sl"))
     session._updated(result.data)
 end
 
 local function thread<T>(session: Session<T>)
     while true do
-        if session._next_save_opportunity - os.clock() > 0 then task.wait(); continue end
-        pcall(pull_auto, session, {}) -- silence autosave error if emitted
+        LOG("performing auto-save in", session._next_save_opportunity, "for", session._name)
+        if session._next_save_opportunity > 0 then 
+            local dt = task.wait()
+            session._next_save_opportunity -= dt
+            continue
+        end
+        LOG("triggering auto-save for", session._name)
+        local ok, err = pcall(pull_auto, session, {}) -- silence autosave error if emitted
+        if not ok then print(err) end
     end
 end
 
@@ -185,15 +195,16 @@ local function patch<T, U...>(session: Session<T>, fn: Action<T, U...>, ...: U..
 end
 
 local function updated<T>(session: Session<T>, new: (data: T) -> ())
-    if coroutine.status(session._thread) == "dead" then return end
-    new(session._cached.data)
+    if coroutine.status(session._thread) == "dead" then error("thread is dead") end
     session._updated = new
+    LOG(`{session._name} calling updated register`, debug.info(new, "sl"))
+    new(session._cached.data)
 end
 
 local function stop<T>(session: Session<T>)
-    updated = NOOP
+    session._updated = NOOP
     task.cancel(session._thread)
-    force_pull(session)
+    task.spawn(force_pull, session)
 end
 
 local function add_userid<T>(session: Session<T>, user_id: number)

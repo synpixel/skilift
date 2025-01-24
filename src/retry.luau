@@ -1,3 +1,4 @@
+local task = require("./task")
 
 local EXPONENT_BACKOFF = 2
 
