@@ -15,7 +15,7 @@ jobs:
         with: 
           repository: Roblox/luau
           fileName: luau-ubuntu.zip
-          latest: true
+          tag: "0.651"
           out-file-path: bin
 
       - name: Unzip Luau
