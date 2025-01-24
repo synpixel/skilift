@@ -47,6 +47,8 @@ export type Session<T> = {
     _cached: StoredData<T>,
     --- The thread responsible for autosaving.
     _thread: thread,
+    --- Usere IDs for GDPR
+    _user_ids: { number },
 
     key: string,
 
@@ -59,6 +61,8 @@ export type Session<T> = {
     --- Stops polling the datastore for data, and disables any patching. This
     --- performs one more save. Releases the lock if it was locked.
     stop: (Session<T>) -> (),
+    --- Adds a user id to the gdpr list.
+    gdpr: (Session<T>, user_id: number) -> (),
 
     -- ---- SESSION LOCKING ADDENDUM ----
     -- --- Locks data. This should only be used in cases where session locking is

@@ -102,7 +102,7 @@ local function update<T>(
     LOG(`Returning updated data for {session._name}`)
 
     table.clear(changes)
-    return stored
+    return stored, session._user_ids
 end
 
 local function pull_auto<T>(session: Session<T>, transactions: { [TransactionId]: TransactionData })
@@ -185,6 +185,7 @@ local function patch<T, U...>(session: Session<T>, fn: Action<T, U...>, ...: U..
 end
 
 local function updated<T>(session: Session<T>, new: (data: T) -> ())
+    if coroutine.status(session._thread) == "dead" then return end
     new(session._cached.data)
     session._updated = new
 end
@@ -193,6 +194,10 @@ local function stop<T>(session: Session<T>)
     updated = NOOP
     task.cancel(session._thread)
     force_pull(session)
+end
+
+local function add_userid<T>(session: Session<T>, user_id: number)
+    table.insert(session._user_ids, user_id)
 end
 
 local function load_session<T>(self: Store<T>, key: string): Session<T>
@@ -204,6 +209,7 @@ local function load_session<T>(self: Store<T>, key: string): Session<T>
         _pending_transactions = {},
         _next_save_opportunity = 0,
         _updated = NOOP,
+        _user_ids = {},
         _cached = {
             pending_transactions = {},
             migrations_performed = {},
@@ -215,6 +221,7 @@ local function load_session<T>(self: Store<T>, key: string): Session<T>
     session.patch = patch
     session.updated = updated
     session.stop = stop
+    session.gdpr = add_userid
 
     session._thread = task.spawn(thread, session :: any)
 
