@@ -1,5 +1,4 @@
 local pending = {}
-local time = 0
 
 local function spawn<T...>(fn: (T...) -> (...any), ...: T...): thread
     local thread = coroutine.create(fn)
@@ -8,10 +7,8 @@ local function spawn<T...>(fn: (T...) -> (...any), ...: T...): thread
 end
 
 local function wait(t: number?): number
-    local t = t or 1/60
-    pending[coroutine.running()] = time + t
-    local dt = coroutine.yield()
-    return t - dt
+    table.insert(pending, { time_left = t or 0, time_waited = 0, thread = coroutine.running() })
+    return coroutine.yield()
 end
 
 local function close(thread: thread)
@@ -19,15 +16,17 @@ local function close(thread: thread)
 end
 
 local function step(dt: number?)
-    local dt = dt or 10
-    time += dt
-    for thread, when in pending do
-        if coroutine.status(thread) ~= "suspended" then pending[thread] = nil; return end
-        pending[thread] -= dt
-        if when - dt > 0 then continue end
-        local n = pending[thread]
-        pending[thread] = nil
-        coroutine.resume(thread, n)
+    for i = #pending, 1, -1 do
+        local data = pending[i]
+
+        data.time_left -= dt
+        data.time_waited += dt
+
+        if data.time_left <= 0 then
+            pending[i] = pending[#pending]
+            pending[#pending] = nil
+            coroutine.resume(data.thread, data.time_waited)
+        end
     end
 end
 

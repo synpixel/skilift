@@ -153,6 +153,7 @@ local function thread<T>(session: Session<T>)
     while true do
         LOG("performing auto-save in", session._next_save_opportunity, "for", session._name)
         if session._next_save_opportunity > 0 then 
+            print("yielding")
             local dt = task.wait()
             session._next_save_opportunity -= dt
             continue

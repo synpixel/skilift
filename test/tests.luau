@@ -115,34 +115,11 @@ TEST("session", function()
     end
     print()
     do CASE "patch"
-        local session = store:load("patch-1")
-        local n = 0
-
-        local function fn(value)
-            n += 1
-            CHECK(value.money == 0)
-        end
-        
-        session:updated(fn)
-
-        CHECK(session._updated == fn)
-
-        CHECK(n == 1)
-        task.step(1)
-        CHECK(n == 1)
-        task.step(100)
-        CHECK(n == 2)
-        
-        session:stop()
-    end
-
-    do CASE "patch"
         local session = store:load("patch")
         local expected = 0
         local n = 0
 
         local function increment_money(data: PlayerData, n: number)
-            expected += n
             data.money += n
             return data
         end
@@ -150,21 +127,21 @@ TEST("session", function()
         skilift.action.normal(increment_money)
 
         local function fn(value)
-            print(debug.traceback())
             n += 1
-            print(n)
+            print(n, value.money, expected)
             CHECK(value.money == expected)
         end
         
         session:updated(fn)
 
         CHECK(n == 1)
-        print("step")
-        task.step(1)
-        CHECK(n == 1)
-        print("step")
         task.step(100)
         CHECK(n == 2)
+        expected += 10
+        session:patch(increment_money, 10)
+        CHECK(n == 3)
+        task.step(100)
+        CHECK(n == 4)
 
         session:stop()
     end
