@@ -15,7 +15,7 @@ hero:
   actions:
     - theme: brand
       text: Learn
-      link: /resources/getting-started/1-install.md
+      link: /resources/
     - theme: alt
       text: API Reference
       link: /api/skilift/
