@@ -233,7 +233,7 @@ local function load_session<T>(self: Store<T>, key: string): Session<T>
     session.patch = patch
     session.updated = updated
     session.stop = stop
-    session.gdpr = add_userid
+    session.userid = add_userid
 
     session._thread = task.spawn(thread, session :: any)
 

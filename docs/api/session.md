@@ -41,6 +41,19 @@ Stops the session and saves the last data stored.
     function session<T>:stop()
     ```
 
+### userid
+
+Adds a User Id to an array, which will be used for tracking GDPR metadata.
+
+- Type
+
+    ```luau
+    function session<T>:userid(user: number)
+
+- Details
+
+    This isn't saved. You'll have to call this on every server you join.
+
 ## Properties
 
 ### key
