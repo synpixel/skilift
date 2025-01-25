@@ -1,0 +1,23 @@
+name = "alicesaidhi/skilift"
+version = "0.1.0"
+private = true
+authors = ["alicesaidhi"]
+repository = "https://github.com/alicesaidhi/skilift"
+license = "MIT"
+
+[target]
+environment = "roblox"
+
+[indices]
+default = "https://github.com/pesde-pkg/index"
+
+[wally_indices]
+default = "https://github.com/UpliftGames/wally-index"
+
+[scripts]
+roblox_sync_config_generator = ".pesde/scripts/roblox_sync_config_generator.luau"
+sourcemap_generator = ".pesde/scripts/sourcemap_generator.luau"
+
+[dependencies]
+vide = { wally = "wally#centau/vide", version = "^0.3.1" }
+skilift = { name = "alicesaidhi/skilift", version = "^0.1.0" }

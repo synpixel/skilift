@@ -1,0 +1,18 @@
+# example
+
+A tiny RNG game to test out skilift
+
+## Getting Started
+To build the place from scratch, use:
+
+```bash
+rojo build -o "example.rbxlx"
+```
+
+Next, open `example.rbxlx` in Roblox Studio and start the Rojo server:
+
+```bash
+rojo serve
+```
+
+For more help, check out [the Rojo documentation](https://rojo.space/docs).

@@ -1,0 +1,42 @@
+name = "alicesaidhi/skilift"
+version = "0.1.0"
+target = "roblox"
+
+[graph."alicesaidhi/skilift"."0.1.0 roblox"]
+direct = ["skilift", { name = "alicesaidhi/skilift", version = "^0.1.0" }, "standard"]
+resolved_ty = "standard"
+
+[graph."alicesaidhi/skilift"."0.1.0 roblox".target]
+environment = "roblox"
+lib = "src/init.luau"
+build_files = ["src"]
+
+[graph."alicesaidhi/skilift"."0.1.0 roblox".pkg_ref]
+ref_ty = "pesde"
+name = "alicesaidhi/skilift"
+version = "0.1.0"
+index_url = "https://github.com/pesde-pkg/index"
+
+[graph."alicesaidhi/skilift"."0.1.0 roblox".pkg_ref.dependencies]
+rojo = [{ name = "pesde/rojo", version = "^7.4.4", index = "https://github.com/pesde-pkg/index", target = "lune" }, "dev"]
+scripts = [{ name = "pesde/scripts_rojo", version = "^0.1.0", index = "https://github.com/pesde-pkg/index", target = "lune" }, "dev"]
+
+[graph."alicesaidhi/skilift"."0.1.0 roblox".pkg_ref.target]
+environment = "roblox"
+lib = "src/init.luau"
+build_files = ["src"]
+
+[graph."wally#centau/vide"."0.3.1 roblox"]
+direct = ["vide", { wally = "wally#centau/vide", version = "^0.3.1" }, "standard"]
+resolved_ty = "standard"
+
+[graph."wally#centau/vide"."0.3.1 roblox".target]
+environment = "roblox"
+lib = "____pesde_no_export_file_found"
+build_files = []
+
+[graph."wally#centau/vide"."0.3.1 roblox".pkg_ref]
+ref_ty = "wally"
+wally = "wally#centau/vide"
+version = "0.3.1"
+index_url = "https://github.com/UpliftGames/wally-index"
