@@ -16,13 +16,9 @@ skilift = "alicesaidhi/skilift@0.1.0"
 In your terminal, run the following command.
 
 ```sh
-pesde add wally#alicesaidhi/skilift@0.1.0
+pesde add alicesaidhi/skilift
 ```
 
 ==rbxm
 Download the latest rbxm from Github Releases and add it to your Studio.
 :::
-
-## Setting up
-
-wip

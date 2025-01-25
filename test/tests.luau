@@ -1,7 +1,7 @@
 local testkit = require("./testkit")
 local ds = require("./mock")
-local skilift = require("../../skilift/src/lib")
-local task = require("../../skilift/src/task")
+local skilift = require("../src/lib")
+local task = require("../src/task")
 
 local TEST, CASE, CHECK, FINISH, SKIP = testkit.test()
 

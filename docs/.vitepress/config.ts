@@ -57,11 +57,14 @@ export default defineConfig({
             ],
             "/resources/": [
                 { text: "Resources", link: "/resources/" },
-                { text: "Getting Started", link: "/resources/getting-started/" },
-                { text: "Atomic Operations", link: "/resources/atomic-operations/" },
-                { text: "Mental Model", link: "/resources/mental-model/" },
-                { text: "Transactions", link: "/resources/transactions/" },
-                
+                { text: "Getting Started", collapsed: false, items: [
+                    { text: "Why", link: "/resources/getting-started/1-why/" },
+                    { text: "Installation", link: "/resources/getting-started/2-installation/" },
+                    { text: "Setting Up", link: "/resources/getting-started/3-setting-up/" },
+                ] },
+                { text: "Advanced", collapsed: false, items: [
+                    { text: "Transactions", link: "/resources/advanced-concepts/transactions/" },
+                ] },
             ]
         },
 
