@@ -41,7 +41,7 @@ local function tostring_err(self: JSONError)
     return if self.why == "bad_type" then `value at {path(self.where)} is not valid json`
         elseif self.why == "non_real_number" then `value at {path(self.where)} is not a real number`
         elseif self.why == "only_use_string_key_dict" then `value at {path(self.where)} is a dictionary, but not all keys are strings`
-        elseif self.why == "recursive_table" then `value at {path(self.where)} referenced itself already.`
+        elseif self.why == "recursive_table" then `value at {path(self.where)} is recursive.`
         else `unknown error at {path(self.where)}`
 end
 

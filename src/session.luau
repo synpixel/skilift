@@ -11,6 +11,9 @@ local THROW = require("./throw")
 
 local AUTOSAVE_DELAY = 15
 
+local profilebegin = debug.profilebegin or function() end :: never
+local profileend = debug.profileend or function() end :: never
+
 local NOOP = function() end
 
 type JSON = types.JSON
@@ -201,6 +204,7 @@ local function patch_regular<T, U...>(session: Session<T>, fn: Action<T, U...>, 
     LOG(`Performing "{debug.info(fn, "n")}" for {session._name}`)
 
     if flags.strict then
+        profilebegin("strict mode")
         local start = session._cached.data
         local a = util.clone(start)
         a = fn(a, ...)
@@ -218,6 +222,7 @@ local function patch_regular<T, U...>(session: Session<T>, fn: Action<T, U...>, 
         if not util.delta_eq(a, b) then
             THROW("strict_impure_action", debug.info(fn, "sl"))
         end
+        profileend()
 
         table.insert(session._changes, actions.create_record(fn, ...) )
         session._cached.data = a
