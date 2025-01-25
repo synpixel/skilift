@@ -9,7 +9,7 @@ local transaction = require("./checktransaction")
 local clone = require("./clone")
 local THROW = require("./throw")
 
-local AUTOSAVE_DELAY = 10
+local AUTOSAVE_DELAY = 15
 
 local NOOP = function() end
 
