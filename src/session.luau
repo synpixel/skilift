@@ -6,6 +6,7 @@ local actions = require("./actions")
 local flags = require("./flags")
 local task = require("./task")
 local transaction = require("./checktransaction")
+local THROW = require("./throw")
 
 local AUTOSAVE_DELAY = 10
 
@@ -29,7 +30,11 @@ local function migrate<T>(session: Session<T>, stored: StoredData<T>)
     for i, migration in migrations do
         if table.find(stored.migrations_performed, migration) then continue end
         LOG(`{session._name}: Migration Step {migration.step}`)
-        stored.data = migration.migrate(stored.data)
+
+        local result = migration.migrate(stored.data)
+        if result == nil then THROW("migration_does_not_return", migration.step) end
+        stored.data = result
+
         table.insert(stored.migrations_performed, migration.step)
     end
 end
@@ -38,7 +43,9 @@ local function perform_transaction<T>(stored: StoredData<T>, action: Transaction
     local fn = actions.obtain_transaction_action(action.fn)
     local values = action.values
 
-    stored.data = fn(stored.data, unpack(values))
+    local result = fn(stored.data, unpack(values))
+    if result == nil then THROW("action_does_not_return", action.fn) end
+    stored.data = result
 end
 
 local function create_migrations_table(session: Session<any>)
@@ -96,8 +103,10 @@ local function update<T>(
 
     for _, action in changes do
         local fn = action[1]
-        LOG("Applying action", debug.info(fn, "n"), "with", unpack(action, 2))
-        stored.data = fn(stored.data, unpack(action, 2))
+        LOG("Applying action with", unpack(action, 2))
+        local result = fn(stored.data, unpack(action, 2))
+        if result == nil then THROW("action_does_not_return", debug.info(fn, "n")) end
+        stored.data = result
     end
 
     LOG(`Returning updated data for {session._name}`)

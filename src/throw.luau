@@ -16,6 +16,12 @@ local ERRORS = {
     },
     unknown_transaction_action = {
         msg = `Unable to perform an action named %s?`
+    },
+    action_does_not_return = {
+        msg = `Action %s does not return any data.`
+    },
+    migration_does_not_return = {
+        msg = `Migration %s does not return any data.`
     }
 }
 
@@ -26,6 +32,8 @@ type Errors =
     | "action_attempt_transaction"
     | "cannot_make_action"
     | "unknown_transaction_action"
+    | "action_does_not_return"
+    | "migration_does_not_return"
 
 local function THROW(err: Errors, ...: string)
     error(string.format(ERRORS[err].msg, ...), 3)
