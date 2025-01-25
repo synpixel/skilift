@@ -128,7 +128,6 @@ TEST("session", function()
 
         local function fn(value)
             n += 1
-            print(value.money, expected)
             CHECK(value.money == expected)
         end
         
@@ -143,7 +142,6 @@ TEST("session", function()
         task.step(100)
         CHECK(n == 4)
         expected += 10
-        print("new value")
         session:patch(increment_money, 10)
         CHECK(n == 5)
 
@@ -272,22 +270,42 @@ TEST("strict mode", function()
         migrations = {},
         default_data = function()
             return {
-                money = 0
+                money = 0,
+                test = nil :: any
             }
         end
     }
 
-    local function impure_action(data: PlayerData)
+    local function impure_action(data)
         data.money = math.random()
         return data
     end
 
-    local function bad_json(data: PlayerData)
+    local function non_real_number(data)
         data.money = math.huge
         return data
     end
 
+    local function non_string_key(data)
+        data[true] = true
+        return data
+    end
+
+    local function recursive_table(data)
+        data.money = data :: any
+        return data
+    end
+
+    local function bad_type(data)
+        data.test = vector.create(0, 0, 0)
+        return data
+    end
+
     skilift.action.normal(impure_action)
+    skilift.action.normal(non_real_number)
+    skilift.action.normal(non_string_key)
+    skilift.action.normal(recursive_table)
+    skilift.action.normal(bad_type)
     
     do CASE "fail impure function"
         local session = store:load("impure")
@@ -299,14 +317,48 @@ TEST("strict mode", function()
         CHECK(ok == false)
     end
 
-    do CASE "fail invalid json"
+    do CASE "fail invalid json non-real number"
         local session = store:load("impure")
 
-        local ok = pcall(function()
-            session:patch(bad_json)
+        local ok, err: string = pcall(function()
+            session:patch(non_real_number)
         end)
 
         CHECK(ok == false)
+        CHECK(err:find("not a real number"))
+    end
+
+    do CASE "fail invalid json string key"
+        local session = store:load("impure")
+
+        local ok, err: string = pcall(function()
+            session:patch(non_string_key)
+        end)
+
+        CHECK(ok == false)
+        CHECK(err:find("keys are string"))
+    end
+    
+    do CASE "fail invalid json recursive"
+        local session = store:load("impure")
+
+        local ok, err: string = pcall(function()
+            session:patch(recursive_table)
+        end)
+
+        CHECK(ok == false)
+        CHECK(err:find("recursive"))
+    end
+
+    do CASE "fail invalid json bad type"
+        local session = store:load("impure")
+
+        local ok, err: string = pcall(function()
+            session:patch(bad_type)
+        end)
+
+        CHECK(ok == false)
+        CHECK(err:find("valid json"))
     end
 
 end)
