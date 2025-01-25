@@ -16,6 +16,7 @@ Creates a new store.
         migrations: { {step: string, migrate: (old: any) -> any} }
     }): Session<T>
     ```
+
 - **Details**
 
     default_data should always return unique data. When returning a table, make sure it's not referenced anywhere else.
@@ -36,6 +37,20 @@ Initiates a transaction
 - **Details**
 
     Returns a boolean indicating if the transaction was succesful or not. View the transaction article in advanced concepts for more information about how to properly handle transactions.
+
+### strict()
+
+Sets or reads the currently stored value for strict mode.
+
+- **Type**
+
+    ```luau
+    function skilift.strict(value: boolean?): boolean
+    ```
+
+- **Details**
+
+    View the [strict mode](/resources/advanced-concepts/strict-mode/) resource for more information on what strict mode does.
 
 ### action.normal()
 

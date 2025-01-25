@@ -64,6 +64,7 @@ export default defineConfig({
                 { text: "Concepts", collapsed: false, items: [
                     { text: "Transactions", link: "/resources/advanced-concepts/transactions/" },
                     { text: "Migrations", link: "/resources/advanced-concepts/migrations/" },
+                    { text: "Strict Mode", link: "/resources/advanced-concepts/strict-mode/" },
                 ] },
             ]
         },
