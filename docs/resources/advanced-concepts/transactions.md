@@ -40,7 +40,7 @@ skilift.action.transaction(take_money, "take_money")
 -- when the transaction succeeds, it takes money from bob and gives money to tom
 local ok = skilift.transaction(function()
     bob:patch(take_money, 10)
-    tom:patch(add_money, 10)
+    tom:patch(give_money, 10)
 end)
 ```
 
@@ -54,8 +54,8 @@ This code is flawed though. Transactions don't process instantly, and you should
 -- succeeded.
 bob:patch(take_money, 10)
 local ok = skilift.transaction(function()
-    tom:patch(add_money, 10)
+    tom:patch(give_money, 10)
 end, function()
-    bob:patch(add_money, 10)
+    bob:patch(give_money, 10)
 end)
 ```
