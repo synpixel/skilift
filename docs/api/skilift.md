@@ -50,7 +50,7 @@ Sets or reads the currently stored value for strict mode.
 
 - **Details**
 
-    View the [strict mode](/resources/advanced-concepts/strict-mode/) resource for more information on what strict mode does.
+    View the [strict mode](/resources/advanced-concepts/strict-mode.md) resource for more information on what strict mode does.
 
 ### action.normal()
 
