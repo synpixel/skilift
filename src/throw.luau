@@ -22,6 +22,13 @@ local ERRORS = {
     },
     migration_does_not_return = {
         msg = `Migration %s does not return any data.`
+    },
+
+    strict_impure_action = {
+        msg = `Action at %s:%s is impure and does not yield the same result`
+    },
+    strict_not_json_from_action = {
+        msg = `Action %s is not valid JSON: %s`
     }
 }
 
@@ -34,6 +41,9 @@ type Errors =
     | "unknown_transaction_action"
     | "action_does_not_return"
     | "migration_does_not_return"
+
+    | "strict_impure_action"
+    | "strict_not_json_from_action"
 
 local function THROW(err: Errors, ...: string)
     error(string.format(ERRORS[err].msg, ...), 3)

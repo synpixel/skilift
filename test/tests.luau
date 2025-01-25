@@ -9,6 +9,8 @@ type PlayerData = {
     money: number
 }
 
+skilift.strict(false)
+
 TEST("registering actions", function()
     local actions = require("../src/actions")
 
@@ -77,7 +79,6 @@ TEST("session", function()
         local session = store:load("updated")
         local n = 0
         
-        
         local function fn(value)
             n += 1
             CHECK(value.money)
@@ -127,6 +128,7 @@ TEST("session", function()
 
         local function fn(value)
             n += 1
+            print(value.money, expected)
             CHECK(value.money == expected)
         end
         
@@ -141,6 +143,7 @@ TEST("session", function()
         task.step(100)
         CHECK(n == 4)
         expected += 10
+        print("new value")
         session:patch(increment_money, 10)
         CHECK(n == 5)
 
@@ -259,7 +262,52 @@ TEST("view", function()
         CHECK(data.money == 200)
     end
 
+end)
+
+TEST("strict mode", function()
+    skilift.strict(true)
+
+    local store = skilift.store {
+        name = "test",
+        migrations = {},
+        default_data = function()
+            return {
+                money = 0
+            }
+        end
+    }
+
+    local function impure_action(data: PlayerData)
+        data.money = math.random()
+        return data
+    end
+
+    local function bad_json(data: PlayerData)
+        data.money = math.huge
+        return data
+    end
+
+    skilift.action.normal(impure_action)
     
+    do CASE "fail impure function"
+        local session = store:load("impure")
+
+        local ok = pcall(function()
+            session:patch(impure_action)
+        end)
+
+        CHECK(ok == false)
+    end
+
+    do CASE "fail invalid json"
+        local session = store:load("impure")
+
+        local ok = pcall(function()
+            session:patch(bad_json)
+        end)
+
+        CHECK(ok == false)
+    end
 
 end)
 

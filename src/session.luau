@@ -6,7 +6,7 @@ local actions = require("./actions")
 local flags = require("./flags")
 local task = require("./task")
 local transaction = require("./checktransaction")
-local clone = require("./clone")
+local util = require("./util")
 local THROW = require("./throw")
 
 local AUTOSAVE_DELAY = 15
@@ -55,6 +55,14 @@ local function create_migrations_table(session: Session<any>)
         table.insert(migrations, migration.step)
     end
     return migrations
+end
+
+local function run_updated<T>(session: Session<T>)
+    local data = session._cached.data
+    local fn = session._updated
+    local copy = util.deep_freeze(util.clone(data))
+
+    return fn(copy)
 end
 
 local function update<T>(
@@ -137,7 +145,7 @@ local function pull_auto<T>(session: Session<T>, transactions: { [TransactionId]
 
     session._cached = result
     LOG(`{session._name} calling updated -`, debug.info(session._updated, "sl"))
-    session._updated(clone(result.data))
+    run_updated(session)
 end
 
 local function force_pull<T>(session: Session<T>)
@@ -156,7 +164,7 @@ local function force_pull<T>(session: Session<T>)
     session._next_save_opportunity = AUTOSAVE_DELAY
     session._cached = result
     LOG(`{session._name} calling updated on force`, debug.info(session._updated, "sl"))
-    session._updated(clone(result.data))
+    run_updated(session)
 end
 
 local function thread<T>(session: Session<T>)
@@ -191,9 +199,34 @@ end
 
 local function patch_regular<T, U...>(session: Session<T>, fn: Action<T, U...>, ...: U...)
     LOG(`Performing "{debug.info(fn, "n")}" for {session._name}`)
-    table.insert(session._changes, actions.create_record(fn, ...) )
-    session._cached.data = fn(session._cached.data, ...)
-    session._updated(clone(session._cached.data))
+
+    if flags.strict then
+        local start = session._cached.data
+        local a = util.clone(start)
+        a = fn(a, ...)
+
+        local b = util.clone(start)
+        b = fn(b, ...)
+
+        -- check if it's valid json in strict mode
+        local ok, err: util.JSONError = pcall(util.check_json_valid, a)
+
+        if ok == false then
+            THROW("strict_not_json_from_action", debug.info(fn, "s"), tostring(err))
+        end
+        -- it's valid json, but we have to make sure it's pure
+        if not util.delta_eq(a, b) then
+            THROW("strict_impure_action", debug.info(fn, "sl"))
+        end
+
+        table.insert(session._changes, actions.create_record(fn, ...) )
+        session._cached.data = a
+        run_updated(session)
+    else
+        table.insert(session._changes, actions.create_record(fn, ...) )
+        session._cached.data = fn(session._cached.data, ...)
+        run_updated(session)
+    end
 end
 
 local function patch<T, U...>(session: Session<T>, fn: Action<T, U...>, ...: U...)
@@ -209,7 +242,7 @@ local function updated<T>(session: Session<T>, new: (data: T) -> ())
     if coroutine.status(session._thread) == "dead" then error("thread is dead") end
     session._updated = new
     LOG(`{session._name} calling updated register`, debug.info(new, "sl"))
-    new(clone(session._cached.data))
+    run_updated(session)
 end
 
 local function stop<T>(session: Session<T>)
