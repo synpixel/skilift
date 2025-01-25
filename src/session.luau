@@ -6,6 +6,7 @@ local actions = require("./actions")
 local flags = require("./flags")
 local task = require("./task")
 local transaction = require("./checktransaction")
+local clone = require("./clone")
 local THROW = require("./throw")
 
 local AUTOSAVE_DELAY = 10
@@ -136,7 +137,7 @@ local function pull_auto<T>(session: Session<T>, transactions: { [TransactionId]
 
     session._cached = result
     LOG(`{session._name} calling updated -`, debug.info(session._updated, "sl"))
-    session._updated(result.data)
+    session._updated(clone(result.data))
 end
 
 local function force_pull<T>(session: Session<T>)
@@ -155,7 +156,7 @@ local function force_pull<T>(session: Session<T>)
     session._next_save_opportunity = AUTOSAVE_DELAY
     session._cached = result
     LOG(`{session._name} calling updated on force`, debug.info(session._updated, "sl"))
-    session._updated(result.data)
+    session._updated(clone(result.data))
 end
 
 local function thread<T>(session: Session<T>)
@@ -192,7 +193,7 @@ local function patch_regular<T, U...>(session: Session<T>, fn: Action<T, U...>, 
     LOG(`Performing "{debug.info(fn, "n")}" for {session._name}`)
     table.insert(session._changes, actions.create_record(fn, ...) )
     session._cached.data = fn(session._cached.data, ...)
-    session._updated(session._cached.data)
+    session._updated(clone(session._cached.data))
 end
 
 local function patch<T, U...>(session: Session<T>, fn: Action<T, U...>, ...: U...)
@@ -208,7 +209,7 @@ local function updated<T>(session: Session<T>, new: (data: T) -> ())
     if coroutine.status(session._thread) == "dead" then error("thread is dead") end
     session._updated = new
     LOG(`{session._name} calling updated register`, debug.info(new, "sl"))
-    new(session._cached.data)
+    new(clone(session._cached.data))
 end
 
 local function stop<T>(session: Session<T>)
