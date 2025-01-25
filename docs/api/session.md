@@ -1,3 +1,8 @@
+---
+previous: false
+next: false
+---
+
 # Session
 
 Sessions can be obtained from a [Store](./store.md) and represent a key that is actively being loaded by the server.
@@ -13,6 +18,7 @@ Patches the currently stored data with a given patcher function. Patches will ap
     ```luau
     function session<T>:patch<U...>(fn: (T, U...) -> T, T...)
     ```
+
 - Details
 
     When inside a transaction, instead of the patch being applied immediately they are deferred until the next pull.

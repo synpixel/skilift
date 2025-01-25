@@ -1,3 +1,8 @@
+---
+previous: false
+next: false
+---
+
 # Store
 
 ## Methods

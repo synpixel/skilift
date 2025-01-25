@@ -1,3 +1,8 @@
+---
+previous: false
+next: false
+---
+
 # View
 
 Views are used to read the value of a key right now, or in the past.
@@ -13,6 +18,7 @@ Fetches the latest version of the key.
     ```luau
     function view<T>:latest(): T
     ```
+
 - Details
 
     Always performs a GetAsync request.

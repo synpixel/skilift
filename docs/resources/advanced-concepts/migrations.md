@@ -1,3 +1,8 @@
+---
+previous: false
+next: false
+---
+
 # Migrations
 
 More often than not, as a developer you have to start changing the data format that you use for player data. Skilift requires this as part of it's API.

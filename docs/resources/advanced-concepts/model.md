@@ -1,3 +1,8 @@
+---
+previous: false
+next: false
+---
+
 # Model
 
 Skilift operates on a different model compared to other Datastore libraries. This model allows skilift to have better safety features compared to other libraries. The model is based around the writings of [Jack's very cool blog post](https://blog.jmdev.space/posts/datastores/).

@@ -1,3 +1,8 @@
+---
+previous: false
+next: false
+---
+
 # Strict Mode
 
 Strict mode is intended to catch errors and bad code that would generally be considered too expensive to check for. It's enabled by default in Roblox Studio and automatically disables itself outside of studio. This can be toggled through `skilift.strict`.

@@ -1,3 +1,8 @@
+---
+previous: false
+next: false
+---
+
 # Transactions
 
 A problem developers often encounter is safely modifying multiple keys at the same time. A failure on any key should result in a failure for every other write, or you may have a dupe glitch.
