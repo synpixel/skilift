@@ -1,6 +1,7 @@
 /out
 /docs/node_modules/
 /docs/.vitepress/cache
+/docs/.vitepress/dist
 
 /luau_packages
 /lune_packages
