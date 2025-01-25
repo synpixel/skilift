@@ -13,7 +13,7 @@ local function view_key<T>(self: Store<T>, key: string): View<T>
     function view:latest()
         local value: StoredData<T> = retry.regular_retry(function()
             budget.delay_until_meets_budget("get", 1)
-            return datastore:GetAsync(key)
+            return datastore:GetAsync(key) or { data = nil }
         end)
 
         return value.data
@@ -22,7 +22,7 @@ local function view_key<T>(self: Store<T>, key: string): View<T>
     function view:version(version: string)
         local value: StoredData<T> = retry.regular_retry(function()
             budget.delay_until_meets_budget("get_version", 1)
-            return datastore:GetVersionAsync(key, version)
+            return datastore:GetVersionAsync(key, version) or { data = nil }
         end)
 
         return value.data
@@ -31,7 +31,7 @@ local function view_key<T>(self: Store<T>, key: string): View<T>
     function view:timestamp(timestamp: number)
         local value: StoredData<T> = retry.regular_retry(function()
             budget.delay_until_meets_budget("get_version", 1)
-            return datastore:GetVersionAtTimeAsync(key, timestamp)
+            return datastore:GetVersionAtTimeAsync(key, timestamp) or { data = nil }
         end)
 
         return value.data

@@ -148,12 +148,6 @@ TEST("session", function()
         CHECK(store._store:GetAsync("patch").data.money == expected)
     end
 
-    -- this test case simulates a concurrent read from another server, where
-    -- they change some of the data
-    do CASE "handle concurrent writes"
-
-
-    end
 end)
 
 TEST("transaction", function()
@@ -222,6 +216,50 @@ TEST("transaction", function()
         CHECK(session1._cached.data.fail== 1)
         CHECK(session2._cached.data.fail == 1)
     end
+
+end)
+
+TEST("view", function()
+    local store = skilift.store {
+        name = "test",
+        migrations = {},
+        default_data = function()
+            return {
+                money = 0
+            }
+        end
+    }
+    
+    do CASE "create view"
+        local view = store:view("key")
+        CHECK(view)
+    end
+
+    do CASE "latest"
+        store._store:SetAsync("read-latest", { data = { money = 100 } })
+        local view = store:view("read-latest")
+        local value = view:latest()
+        CHECK(value.money == 100)
+    end
+
+    do CASE "latest no data"
+        local view = store:view("read-latest-no-data")
+        local value = view:latest()
+        CHECK(value == nil)
+    end
+
+    do CASE "get version"
+        local view = store:view("read-version")
+        local version = store._store:SetAsync("read-version", { data = { money = 100 } })
+        local version2 = store._store:SetAsync("read-version", { data = { money = 200 } })
+
+        local data = view:version(version)
+        CHECK(data.money == 100)
+        local data = view:version(version2)
+        CHECK(data.money == 200)
+    end
+
+    
 
 end)
 

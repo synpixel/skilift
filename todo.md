@@ -1,4 +1,4 @@
 # todo
 
 - [ ] strict mode
-- [ ] fix views
+- [x] fix views
