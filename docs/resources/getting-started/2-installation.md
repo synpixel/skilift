@@ -1,3 +1,12 @@
+---
+prev:
+    text: Why
+    link: ./1-why/
+next:
+    text: Installation
+    link: ./3-setting-up/
+---
+
 # Getting Started
 
 This goes over how to start setting up skilift.

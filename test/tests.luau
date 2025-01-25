@@ -147,6 +147,13 @@ TEST("session", function()
         session:stop()
         CHECK(store._store:GetAsync("patch").data.money == expected)
     end
+
+    -- this test case simulates a concurrent read from another server, where
+    -- they change some of the data
+    do CASE "handle concurrent writes"
+
+
+    end
 end)
 
 TEST("transaction", function()

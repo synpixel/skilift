@@ -1,3 +1,12 @@
+---
+prev:
+    text: Installation
+    link: ./2-installation/
+next:
+    text: Transactions
+    link: ../advanced-concepts/transactions/
+---
+
 # Setting Up
 
 ## Obtaining a session

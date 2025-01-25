@@ -44,7 +44,7 @@ export default defineConfig({
         // https://vitepress.dev/reference/default-theme-config
         nav: [
             { text: "Home", link: "/" },
-            { text: "Resources", link: "/resources/" },
+            { text: "Resources", link: "/resources/getting-started/1-why/" },
             { text: "API", link: "/api/skilift/"},
         ],
 
@@ -56,14 +56,14 @@ export default defineConfig({
                 { text: "view", link: "/api/view/" },
             ],
             "/resources/": [
-                { text: "Resources", link: "/resources/" },
                 { text: "Getting Started", collapsed: false, items: [
                     { text: "Why", link: "/resources/getting-started/1-why/" },
                     { text: "Installation", link: "/resources/getting-started/2-installation/" },
                     { text: "Setting Up", link: "/resources/getting-started/3-setting-up/" },
                 ] },
-                { text: "Advanced", collapsed: false, items: [
+                { text: "Concepts", collapsed: false, items: [
                     { text: "Transactions", link: "/resources/advanced-concepts/transactions/" },
+                    { text: "Migrations", link: "/resources/advanced-concepts/migrations/" },
                 ] },
             ]
         },

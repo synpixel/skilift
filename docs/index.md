@@ -15,7 +15,7 @@ hero:
   actions:
     - theme: brand
       text: Learn
-      link: /resources/
+      link: /resources/getting-started/1-why/
     - theme: alt
       text: API Reference
       link: /api/skilift/
