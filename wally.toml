@@ -4,7 +4,7 @@ description = "Lockless DataStore library"
 license = "MIT"
 version = "0.1.0"
 registry = "https://github.com/UpliftGames/wally-index"
-realm = "shared"
+realm = "server"
 exclude = ["luau_packages", "lune_packages", "out", ".vscode", ".pesde", "build.project.json", "pesde.toml", "pesde.lock", "rokit.toml", "test", "docs"]
 include = ["src", "default.project.json", "LICENSE"]
 

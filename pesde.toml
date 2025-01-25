@@ -12,7 +12,7 @@ includes = [
 ]
 
 [target]
-environment = "roblox"
+environment = "roblox_server"
 lib = "src/init.luau"
 build_files = ["src"]
 
