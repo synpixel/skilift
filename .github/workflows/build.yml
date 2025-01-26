@@ -6,6 +6,9 @@ on:
 permissions:
     contents: write
 
+env:
+  GH_TOKEN: ${{ github.token }}
+  
 jobs:
   unit-test:
     runs-on: ubuntu-latest
