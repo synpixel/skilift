@@ -145,6 +145,7 @@ local function pull_auto<T>(session: Session<T>, transactions: { [TransactionId]
     if not ok then
         error(`Failed to auto-save {result}`)
     end
+    session._first_request_succeeded = true
 
     session._cached = result
     LOG(`{session._name} calling updated -`, debug.info(session._updated, "sl"))
@@ -162,7 +163,8 @@ local function force_pull<T>(session: Session<T>)
         return store:UpdateAsync(key, function(value, keyinfo)
             return update(session, swap, {}, value, keyinfo)
         end)
-    end)
+    end, 1)
+    session._first_request_succeeded = true
 
     session._next_save_opportunity = AUTOSAVE_DELAY
     session._cached = result
@@ -260,6 +262,10 @@ local function add_userid<T>(session: Session<T>, user_id: number)
     table.insert(session._user_ids, user_id)
 end
 
+local function loaded(session: Session<any>)
+    return session._first_request_succeeded
+end
+
 local function load_session<T>(self: Store<T>, key: string): Session<T>
     local session = {
         _name = `{self._store.Name}:{key}`,
@@ -275,6 +281,7 @@ local function load_session<T>(self: Store<T>, key: string): Session<T>
             migrations_performed = {},
             data = self._options.default_data()
         },
+        _first_request_succeeded = false,
         key = key
     }
 
@@ -282,6 +289,7 @@ local function load_session<T>(self: Store<T>, key: string): Session<T>
     session.updated = updated
     session.stop = stop
     session.userid = add_userid
+    session.loaded = loaded
 
     session._thread = task.spawn(thread, session :: any)
 

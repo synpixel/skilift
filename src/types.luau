@@ -47,8 +47,10 @@ export type Session<T> = {
     _cached: StoredData<T>,
     --- The thread responsible for autosaving.
     _thread: thread,
-    --- Usere IDs for GDPR
+    --- User IDs for GDPR
     _user_ids: { number },
+    --- Indicates if a request has succeeded
+    _first_request_succeeded: boolean,
 
     key: string,
 
@@ -63,6 +65,8 @@ export type Session<T> = {
     stop: (Session<T>) -> (),
     --- Adds a user id to the gdpr list.
     gdpr: (Session<T>, user_id: number) -> (),
+    --- Returns if the state has loaded
+    loaded: (Session<T>) -> boolean
 
     -- ---- SESSION LOCKING ADDENDUM ----
     -- --- Locks data. This should only be used in cases where session locking is

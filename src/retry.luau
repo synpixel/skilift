@@ -22,7 +22,7 @@ local function exponential_backoff<T...>(fn: () -> T...): T...
     return unpack(result)
 end
 
-local function regular_retry<T...>(fn: () -> T..., amount: number?): T...
+local function regular_retry<T...>(fn: () -> T..., delay: number, amount: number?): T...
 
     local i = 0
     local ok, result
@@ -32,6 +32,7 @@ local function regular_retry<T...>(fn: () -> T..., amount: number?): T...
             return { fn() }
         end)
         i += 1
+        task.wait(1)
     end
 
     return unpack(result)
