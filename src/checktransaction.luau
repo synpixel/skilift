@@ -35,7 +35,12 @@ local function is_transaction_complete(id: TransactionId): CompletionStatus
     end
 end
 
+local function set_transaction_status(id: TransactionId, ok: boolean)
+    cached_transaction_status[id] = ok
+end
+
 return {
     request_for_transaction = request_for_transaction,
-    is_transaction_complete = is_transaction_complete
+    is_transaction_complete = is_transaction_complete,
+    set_transaction_status = set_transaction_status,
 }

@@ -25,6 +25,7 @@ local function create_transaction(success: (() -> ()), failure: (() -> ())?)
         sessions = {}
     }
 
+    LOG("GETTING ACTIONS FOR SUCCESS")
     do
         transaction_info.state = "success"
         flags.processing_transaction = transaction_info
@@ -34,6 +35,7 @@ local function create_transaction(success: (() -> ()), failure: (() -> ())?)
 
         if not ok then error(err) end
     end
+    LOG("GETTING ACTIONS FOR FAILURE")
 
     if failure then
         transaction_info.state = "failure"
@@ -63,12 +65,6 @@ local function create_transaction(success: (() -> ()), failure: (() -> ())?)
             LOG(`{uuid}: STATUS {if ok then "SUCCESS" else "FAIL"}`)
             if ok == false then
                 failed += 1
-                
-                -- we need to perform the failed actions
-                for _, action in info.failure do
-                    local fn = actions.obtain_transaction_action(action.fn)
-                    Session.patch_regular(session, fn, unpack(action.values))
-                end
             end
             if ok == true then success += 1 end
         end) 
@@ -85,24 +81,25 @@ local function create_transaction(success: (() -> ()), failure: (() -> ())?)
             budget.delay_until_meets_budget("set", 1)
             TRANSACTION_STORE:SetAsync(uuid, true)
         end)
-        LOG(`{uuid}: WRITTEN TO KEY STATUS {ok}`)
+        LOG(`{uuid}: WRITTEN TO KEY STATUS {if ok then "SUCCESS" else "FAIL"}`)
 
-        -- now that the transaction is done, we can pull all data again
-        for session in transaction_info.sessions do
+        for session, info in transaction_info.sessions do
             LOG(`{uuid}: Pulling {session._name}`)
-            task.spawn(function()
-                pcall(Session.pull_auto, session, {})
-            end)
+            for _, action in (if ok == true then info.success else info.failure) do
+                local fn = actions.obtain_transaction_action(action.fn)
+                Session.patch_regular(session, fn, unpack(action.values))
+            end
         end
         
         return ok
     else
         -- now that the transaction is done, we can pull all data again
-        for session in transaction_info.sessions do
+        for session, info in transaction_info.sessions do
             LOG(`{uuid}: Pulling {session._name}`)
-            task.spawn(function()
-                pcall(Session.pull_auto, session, {})
-            end)
+            for _, action in info.failure do
+                local fn = actions.obtain_transaction_action(action.fn)
+                Session.patch_regular(session, fn, unpack(action.values))
+            end
         end
 
         return false

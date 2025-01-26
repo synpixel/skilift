@@ -29,6 +29,9 @@ local ERRORS = {
     },
     strict_not_json_from_action = {
         msg = `Action %s is not valid JSON: %s`
+    },
+    strict_pass_not_json_into_action = {
+        msg = `Actions within transactions can only accept valid JSON for parameters! (at %s)`
     }
 }
 
@@ -44,6 +47,7 @@ type Errors =
 
     | "strict_impure_action"
     | "strict_not_json_from_action"
+    | "strict_pass_not_json_into_action"
 
 local function THROW(err: Errors, ...: string)
     error(string.format(ERRORS[err].msg, ...), 3)

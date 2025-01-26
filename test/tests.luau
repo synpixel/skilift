@@ -215,7 +215,7 @@ TEST("transaction", function()
         end)
 
         CHECK(not status)
-        CHECK(session1._cached.data.fail== 1)
+        CHECK(session1._cached.data.fail == 1)
         CHECK(session2._cached.data.fail == 1)
     end
 
@@ -307,6 +307,7 @@ TEST("strict mode", function()
     skilift.action.normal(non_string_key)
     skilift.action.normal(recursive_table)
     skilift.action.normal(bad_type)
+    skilift.action.transaction(recursive_table, "recursive-table")
     
     do CASE "fail impure function"
         local session = store:load("impure")
@@ -360,6 +361,160 @@ TEST("strict mode", function()
 
         CHECK(ok == false)
         CHECK(err:find("valid json"))
+    end
+
+    do CASE "fail invalid json transaction"
+        local session = store:load("transaction")
+
+        local ok, err = pcall(function()
+            skilift.transaction(function()
+                session:patch(recursive_table, { vector.create(0, 0, 0) })
+            end)
+        end)
+
+        CHECK(ok == false)
+        CHECK(err:find("only accept valid JSON"))
+    end
+
+end)
+
+TEST("reliability tests", function()
+
+    local store = skilift.store {
+        name = "test",
+        migrations = {},
+        default_data = function()
+            return {
+                money = 0
+            }
+        end
+    }
+
+    local function increment_money(data: PlayerData, n: number)
+        data.money += n
+        return data
+    end
+
+    skilift.action.normal(increment_money)
+    skilift.action.transaction(increment_money, "increment-money")
+
+    do CASE "obtain data after request failure"
+        store._store:SetAsync("test-failure", { pending_transactions = {}, migrations_performed = {}, data = { money = 1000 } })
+
+        ds.simulate_outage(true)
+        local session = store:load("test-failure")
+        local down = true
+        
+        session:updated(function(data)
+            CHECK(data.money == (if down then 0 else 1000))
+        end)
+
+        task.step(100)
+        task.step(100)
+        ds.simulate_outage(false)
+        down = false
+        task.step(100)
+
+        session:stop()
+    end
+
+    do CASE "concurrent writing to same key"
+        store._store:SetAsync("test-concurrent", { pending_transactions = {}, migrations_performed = {}, data = { money = 1000 } })
+
+        local session = store:load("test-concurrent")
+        local expected_money = 1000
+
+        
+        session:updated(function(data)
+            CHECK(data.money == expected_money)
+        end)
+
+        expected_money += 10
+        session:patch(increment_money, 10)
+
+        task.step(100)
+        store._store:SetAsync("test-concurrent", { pending_transactions = {}, migrations_performed = {}, data = { money = 10000 } })
+        expected_money = 10000
+        task.step(100)
+        store._store:SetAsync("test-concurrent", { pending_transactions = {}, migrations_performed = {}, data = { money = 3000 } })
+        expected_money += 10
+        session:patch(increment_money, 10)
+        expected_money += 10
+        session:patch(increment_money, 10)
+        expected_money += 10
+        session:patch(increment_money, 10)
+        expected_money += 10
+        session:patch(increment_money, 10)
+        expected_money = 3040
+        task.step(100)
+        session:stop()
+    end
+
+    do CASE "transaction failure write transaction fail"
+
+        local session_a = store:load("session-a")
+        local session_b = store:load("session-b")
+        local session_c = store:load("session-c")
+
+        ds.requests.freeze()
+        
+        local thread = coroutine.create(function()
+            local ok = skilift.transaction(
+                function()
+                    session_a:patch(increment_money, 15)
+                    session_b:patch(increment_money, -10)
+                    session_c:patch(increment_money, -5)
+                    print("done")
+                end
+            )
+
+            print("aaa")
+            CHECK(ok == false)
+        end)
+
+        coroutine.resume(thread)
+
+        ds.requests.pop()
+        ds.requests.pop()
+        ds.deny_requests(1)
+        ds.requests.unfreeze()
+        task.step(1)
+
+    end
+
+    do CASE "transaction failure write session 3 fail"
+
+        local session_a = store:load("session-a")
+        local session_b = store:load("session-b")
+        local session_c = store:load("session-c")
+
+        ds.requests.freeze()
+        
+        local thread = coroutine.create(function()
+            local ok = skilift.transaction(
+                function()
+                    session_a:patch(increment_money, 15)
+                    session_b:patch(increment_money, -10)
+                    session_c:patch(increment_money, -5)
+                    print("done")
+                end
+            )
+
+            print("aaa")
+            CHECK(ok == false)
+        end)
+
+        coroutine.resume(thread)
+
+        ds.requests.pop()
+        ds.requests.pop()
+        ds.deny_requests(1)
+        ds.requests.pop()
+        ds.requests.pop()
+        ds.requests.pop()
+        task.step(1)
+        ds.requests.unfreeze()
+
     end
 
 end)

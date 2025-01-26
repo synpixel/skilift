@@ -182,11 +182,22 @@ local function thread<T>(session: Session<T>)
         end
         LOG("triggering auto-save for", session._name)
         local ok, err = pcall(pull_auto, session, {}) -- silence autosave error if emitted
-        if not ok then warn(err) end
+        if not ok then print(err) end
     end
 end
 
 local function patch_transaction<T, U...>(session: Session<T>, fn: Action<T, U...>, ...: U...)
+
+    if flags.strict then
+        for i = 1, select("#", ...) do
+            local ok, err: util.JSONError = pcall(util.check_json_valid, select(i, ...))
+
+            if ok == false then
+                THROW("strict_pass_not_json_into_action", tostring(err))
+            end
+        end
+    end
+
     local transaction = flags.processing_transaction :: TransactionInfo
     local records = transaction.sessions[session] or { success = {}, failure = {} }
     local record = actions.create_transaction_record(fn, ...)
