@@ -1,5 +1,4 @@
-local DataStoreService = require("./datastoreservice")
-
+local flags = require("./flags")
 local guid = require("./guid")
 local flags = require("./flags")
 local types = require("./types")
@@ -11,12 +10,13 @@ local actions = require("./actions")
 
 local TRANSACTION_NAME = "_$SKILIFT_TRANSACTION"
 local TRANSACTION_SCOPE = "global"
-local TRANSACTION_STORE = DataStoreService:GetDataStore(TRANSACTION_NAME, TRANSACTION_SCOPE)
 
 type TransactionInfo = types.TransactionInfo
 type TransactionId = types.TransactionId
 
 local function create_transaction(success: (() -> ()), failure: (() -> ())?)
+    local TRANSACTION_STORE = flags.datastoreservice:GetDataStore(TRANSACTION_NAME, TRANSACTION_SCOPE)
+    
     local uuid = guid()
     LOG(`STARTING TRANSACTION ID {uuid}`)
     local transaction_info: TransactionInfo = {

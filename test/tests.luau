@@ -10,6 +10,7 @@ type PlayerData = {
 }
 
 skilift.strict(false)
+skilift.mock(ds.DataStoreService)
 
 TEST("registering actions", function()
     local actions = require("../src/actions")

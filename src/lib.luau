@@ -25,6 +25,10 @@ return {
         end
         
         return flags.strict
+    end,
+
+    mock = function(value)
+        flags.datastoreservice = value
     end
 
 }

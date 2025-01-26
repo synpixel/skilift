@@ -12,5 +12,7 @@ return {
     processing_transaction = false :: false | TransactionInfo,
     disable_new_actions = false,
     strict = not is_O2,
-    print = false
+    print = false,
+
+    datastoreservice = if game then game:GetService("DataStoreService") else nil
 }

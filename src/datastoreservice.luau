@@ -1,2 +1,3 @@
+local flags = require(script.Parent.flags)
 
-return if game then game:GetService("DataStoreService") else require("../test/mock").DataStoreService :: never
+return flags.datastoreservice

@@ -1,5 +1,5 @@
-local DataStoreService = require("./datastoreservice")
 local task = require("./task")
+local flags = require("./flags")
 
 local MINIMUM = 5
 
@@ -12,7 +12,7 @@ type BudgetUsage =
 local function get_budget(key: BudgetUsage)
     if not game then return 1000 end
     
-    local budget = DataStoreService:GetRequestBudgetForRequestType(
+    local budget = flags.datastoreservice:GetRequestBudgetForRequestType(
         if key == "get" then Enum.DataStoreRequestType.GetAsync
         elseif key == "get_version" then Enum.DataStoreRequestType.GetVersionAsync
         elseif key == "update" then Enum.DataStoreRequestType.UpdateAsync

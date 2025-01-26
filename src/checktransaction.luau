@@ -1,12 +1,10 @@
-local DataStoreService = require("./datastoreservice")
-
+local flags = require("./flags")
 local types = require("./types")
 local retry = require("./retry")
 local task = require("./task")
 
 local TRANSACTION_NAME = "_$SKILIFT_TRANSACTION"
 local TRANSACTION_SCOPE = "global"
-local TRANSACTION_STORE = DataStoreService:GetDataStore(TRANSACTION_NAME, TRANSACTION_SCOPE)
 
 local cached_transaction_status = {}
 
@@ -15,6 +13,8 @@ type TransactionId = types.TransactionId
 type CompletionStatus = "failed" | "completed" | "unknown"
 
 local function request_for_transaction(id: TransactionId)
+    local TRANSACTION_STORE = flags.datastoreservice:GetDataStore(TRANSACTION_NAME, TRANSACTION_SCOPE)
+
     local result: boolean? = retry.exponential_backoff(function()
         return TRANSACTION_STORE:GetAsync(id)
     end)
