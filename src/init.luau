@@ -1,4 +1,4 @@
-local lib = require("./skilift/lib")
+local lib = require(script.lib)
 
 export type Store<T> = lib.Store<T>
 export type View<T> = lib.View<T>
