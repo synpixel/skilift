@@ -11,6 +11,8 @@ export type StoreOptions<T> = {
     --- Performs migrations in the given order. The version number is associated
     --- with the index. It's important not to change any of the migrations. 
     migrations: { {step: string, migrate: (any) -> (any)} },
+    --- Allows you to change the delay before a session pulls data again.
+    pull_delay: number?
 }
 
 export type Store<T> = {
@@ -51,6 +53,8 @@ export type Session<T> = {
     _user_ids: { number },
     --- Indicates if a request has succeeded
     _first_request_succeeded: boolean,
+    --- The delay between a pull
+    _pull_delay: number,
 
     key: string,
 

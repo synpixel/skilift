@@ -140,7 +140,7 @@ local function pull_auto<T>(session: Session<T>, transactions: { [TransactionId]
         end)
     end)
 
-    session._next_save_opportunity = AUTOSAVE_DELAY
+    session._next_save_opportunity = session._pull_delay
 
     if not ok then
         error(`Failed to auto-save {result}`)
@@ -166,7 +166,7 @@ local function force_pull<T>(session: Session<T>)
     end, 1)
     session._first_request_succeeded = true
 
-    session._next_save_opportunity = AUTOSAVE_DELAY
+    session._next_save_opportunity = session._pull_delay
     session._cached = result
     LOG(`{session._name} calling updated on force`, debug.info(session._updated, "sl"))
     run_updated(session)
@@ -287,6 +287,7 @@ local function load_session<T>(self: Store<T>, key: string): Session<T>
         _next_save_opportunity = 0,
         _updated = NOOP,
         _user_ids = {},
+        _pull_delay = self._options.pull_delay or AUTOSAVE_DELAY,
         _cached = {
             pending_transactions = {},
             migrations_performed = {},
