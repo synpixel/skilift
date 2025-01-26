@@ -47,11 +47,12 @@ local function set_offer(player: Player, item: string, amount: number)
     local other = if info.a == player then info.b else info.a
 
     local n = sessions.player_data[player].items[item] or -1
-    if n > amount then return end
-    if n == -1 then return end
+    if amount > n then return end
+    if n <= 0 then return end
 
     offer[item] = amount
 
+    print("firing", other)
     net.set_item_offer.fire(other, { item = item, amount = amount })
 end
 

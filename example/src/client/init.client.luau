@@ -13,12 +13,12 @@ net.obtain_item.set_callback(function(data)
 end)
 
 net.update_inventory.set_callback(function(data)
-    print("update inventory")
+    print("update inventory to", data)
     state.inventory(data)
 end)
 
 net.set_item_offer.set_callback(function(offer)
-    print("update offer")
+    print("update offer", offer.item, offer.amount)
     state.trading_their_offer()[offer.item] = offer.amount
     state.trading_their_offer(state.trading_their_offer())
 end)
