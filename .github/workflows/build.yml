@@ -23,3 +23,10 @@ jobs:
         run: |
           rojo build -o build.rbxm
           gh release upload ${{github.event.release.tag_name}} build.rbxm
+
+      - name: Build example rbxm and release
+      run: |
+        cd example
+        pesde install
+        rojo build -o build.rbxm
+        gh release upload ${{github.event.release.tag_name}} build.rbxm
