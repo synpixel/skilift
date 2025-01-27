@@ -28,5 +28,5 @@ jobs:
       run: |
         cd example
         pesde install
-        rojo build -o build.rbxm
-        gh release upload ${{github.event.release.tag_name}} build.rbxm
+        rojo build -o example_rng.rbxl
+        gh release upload ${{github.event.release.tag_name}} example_rng.rbxl
