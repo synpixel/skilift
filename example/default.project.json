@@ -21,6 +21,10 @@
     "ServerScriptService": {
       "server": {
         "$path": "src/server"
+      },
+
+      "packages": {
+        "$path": "roblox_server_packages"
       }
     },
 

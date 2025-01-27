@@ -1,7 +1,8 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 
-local skilift = require(ReplicatedStorage.packages.skilift)
+local skilift = require(ServerScriptService.packages.skilift)
 local net = require(ReplicatedStorage.shared.net)
 
 export type PlayerData = {

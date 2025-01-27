@@ -1,6 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 
-local skilift = require(ReplicatedStorage.packages.skilift)
+local skilift = require(ServerScriptService.packages.skilift)
 local sessions = require(script.Parent.sessions)
 local net = require(ReplicatedStorage.shared.net)
 
