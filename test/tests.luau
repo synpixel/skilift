@@ -64,7 +64,8 @@ TEST("session", function()
         migrations = {},
         default_data = function()
             return {
-                money = 0
+                money = 0,
+                nested = { money = 0 }
             }
         end
     }
@@ -148,6 +149,21 @@ TEST("session", function()
 
         session:stop()
         CHECK(store._store:GetAsync("patch").data.money == expected)
+    end
+
+    do CASE "patch nested"
+        local session = store:load("patch")
+        
+        local function patch(data, n: number)
+            data.nested.money += n
+            return data
+        end
+
+        skilift.action.normal(patch)
+
+        session:patch(patch, 10)
+
+        session:stop()
     end
 
 end)

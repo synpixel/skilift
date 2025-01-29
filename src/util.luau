@@ -1,6 +1,13 @@
 local function clone<T>(x: T): T
     if type(x) == "table" then
         local t = table.clone(x)
+        
+        for k, v in t do
+            if typeof(k) == "table" or typeof(v) == "table" then
+                t[clone(k)] = clone(v)
+            end
+        end
+
         return t
     else
         return x
