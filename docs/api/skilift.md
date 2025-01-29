@@ -18,13 +18,15 @@ Creates a new store.
         name: string,
         scope: string?,
         default_data: () -> T
-        migrations: { {step: string, migrate: (old: any) -> any} }
+        migrations: { {step: string, migrate: (old: any) -> any} },
+        schema: ((unknown) -> boolean)?,
+        pull_delay: number?
     }): Session<T>
     ```
 
 - **Details**
 
-    default_data should always return unique data. When returning a table, make sure it's not referenced anywhere else.
+    default_data should always return unique data. When returning a table, make sure it's not referenced anywhere else. Schema validation through `t` or some other library can be added using the schema property. It's possible to manually change the delay between auto-saves / pulls with the pull_delay property.
 
 ### transaction()
 
