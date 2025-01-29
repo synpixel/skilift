@@ -7,7 +7,7 @@ next: false
 
 A problem developers often encounter is safely modifying multiple keys at the same time. A failure on any key should result in a failure for every other write, or you may have a dupe glitch.
 
-In order to perform a transaction, you can use the `skilift.transaction` api. It takes two functions and any patches you perform in these 2 functiosn will be deferred until it either succeeds or fails.
+In order to perform a transaction, you can use the `skilift.transaction` api. It takes two functions and any patches you perform in these 2 functions will be deferred until it either succeeds or fails.
 
 > [!WARNING]
 > You're unable to use regular actions within a transaction. Instead, you use the `skilift.action.transaction` API to tell skilift you can use it inside a transaction. This is important since actions used in transactions should NEVER be removed. When you publish a transaction to production, removing it may result in player data becoming invalid. Further, actions for transactions need to receive a name, unlike regular actions.
