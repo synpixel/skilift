@@ -18,7 +18,7 @@ This goes over how to start setting up skilift.
 In your `wally.toml`, add the following line to your dependencies.
 
 ```toml
-skilift = "alicesaidhi/skilift@0.2.0"
+skilift = "alicesaidhi/skilift@0.2.1"
 ```
 
 ==pesde

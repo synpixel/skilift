@@ -1,5 +1,5 @@
 name = "alicesaidhi/skilift"
-version = "0.2.0"
+version = "0.2.1"
 description = "Lockless DataStore library"
 authors = ["alicesaidhi"]
 repository = "https://github.com/alicesaidhi/skilift"

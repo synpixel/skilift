@@ -1,27 +1,27 @@
 name = "alicesaidhi/skilift"
-version = "0.2.0"
+version = "0.2.1"
 target = "roblox"
 
-[graph."alicesaidhi/skilift"."0.2.0 roblox_server"]
-direct = ["skilift", { name = "alicesaidhi/skilift", version = "^0.2.0", target = "roblox_server" }, "standard"]
+[graph."alicesaidhi/skilift"."0.2.1 roblox_server"]
+direct = ["skilift", { name = "alicesaidhi/skilift", version = "^0.2.1", target = "roblox_server" }, "standard"]
 resolved_ty = "standard"
 
-[graph."alicesaidhi/skilift"."0.2.0 roblox_server".target]
+[graph."alicesaidhi/skilift"."0.2.1 roblox_server".target]
 environment = "roblox_server"
 lib = "src/init.luau"
 build_files = ["src"]
 
-[graph."alicesaidhi/skilift"."0.2.0 roblox_server".pkg_ref]
+[graph."alicesaidhi/skilift"."0.2.1 roblox_server".pkg_ref]
 ref_ty = "pesde"
 name = "alicesaidhi/skilift"
-version = "0.2.0"
+version = "0.2.1"
 index_url = "https://github.com/pesde-pkg/index"
 
-[graph."alicesaidhi/skilift"."0.2.0 roblox_server".pkg_ref.dependencies]
+[graph."alicesaidhi/skilift"."0.2.1 roblox_server".pkg_ref.dependencies]
 rojo = [{ name = "pesde/rojo", version = "^7.4.4", index = "https://github.com/pesde-pkg/index", target = "lune" }, "dev"]
 scripts = [{ name = "pesde/scripts_rojo", version = "^0.1.0", index = "https://github.com/pesde-pkg/index", target = "lune" }, "dev"]
 
-[graph."alicesaidhi/skilift"."0.2.0 roblox_server".pkg_ref.target]
+[graph."alicesaidhi/skilift"."0.2.1 roblox_server".pkg_ref.target]
 environment = "roblox_server"
 lib = "src/init.luau"
 build_files = ["src"]
