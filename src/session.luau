@@ -196,6 +196,36 @@ local function patch_transaction<T, U...>(session: Session<T>, fn: Action<T, U..
                 THROW("strict_pass_not_json_into_action", tostring(err))
             end
         end
+
+        profilebegin("strict mode")
+        local start = session._cached.data
+        local a = util.clone(start)
+        a = fn(a, ...)
+
+        local b = util.clone(start)
+        b = fn(b, ...)
+
+        -- check if it's valid json in strict mode
+        local ok, err: util.JSONError = pcall(util.check_json_valid, a)
+
+        if ok == false then
+            THROW("strict_not_json_from_action", debug.info(fn, "s"), tostring(err))
+        end
+        -- it's valid json, but we have to make sure it's pure
+        if not util.delta_eq(a, b) then
+            THROW("strict_impure_action", debug.info(fn, "sl"))
+        end
+        profileend()
+
+        if session._options.schema and not session._options.schema(a) then
+            THROW("schema_validation_error", session._name, debug.info(fn, "n"))
+        end
+    else
+        local result = fn(util.clone(session._cached.data), ...)
+
+        if session._options.schema and not session._options.schema(result) then
+            THROW("schema_validation_error", session._name, debug.info(fn, "n"))
+        end
     end
 
     local transaction = flags.processing_transaction :: TransactionInfo
@@ -237,12 +267,22 @@ local function patch_regular<T, U...>(session: Session<T>, fn: Action<T, U...>, 
         end
         profileend()
 
+        if session._options.schema and not session._options.schema(a) then
+            THROW("schema_validation_error", session._name, debug.info(fn, "n"))
+        end
+
         table.insert(session._changes, actions.create_record(fn, ...) )
         session._cached.data = a
         run_updated(session)
     else
+        local result = fn(session._cached.data, ...)
+
+        if session._options.schema and not session._options.schema(result) then
+            THROW("schema_validation_error", session._name, debug.info(fn, "n"))
+        end
+
         table.insert(session._changes, actions.create_record(fn, ...) )
-        session._cached.data = fn(session._cached.data, ...)
+        session._cached.data = result
         run_updated(session)
     end
 end

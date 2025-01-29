@@ -12,6 +12,12 @@ type PlayerData = {
 skilift.strict(false)
 skilift.mock(ds.DataStoreService)
 
+local function schema(t)
+    if typeof(t) ~= "table" then return false end
+    if typeof(t.money) ~= "number" then return false end
+    return true
+end
+
 TEST("registering actions", function()
     local actions = require("../src/actions")
 
@@ -390,6 +396,124 @@ TEST("strict mode", function()
 
         CHECK(ok == false)
         CHECK(err:find("only accept valid JSON"))
+    end
+
+    skilift.strict(false)
+end)
+
+TEST("schema", function()
+
+    local store = skilift.store {
+        name = "test-schema",
+        migrations = {},
+        schema = schema,
+        default_data = function()
+            return {
+                money = 0,
+                nested = { money = 0 }
+            }
+        end
+    }
+    
+    do CASE "load"
+        local session = store:load("load")
+        CHECK(session)
+        session:stop()
+    end
+
+    do CASE "updated"
+        -- updated should always fire once
+        local session = store:load("updated")
+        local n = 0
+        
+        local function fn(value)
+            n += 1
+            CHECK(value.money)
+        end
+        
+        session:updated(fn)
+
+        CHECK(session._updated == fn)
+        task.step(1)
+        CHECK(n > 0)
+        session:stop()
+    end
+    
+    do CASE "auto-pull"
+        local session = store:load("auto-save")
+        local n = 0
+
+        local function fn(value)
+            n += 1
+            CHECK(value.money == 0)
+        end
+        
+        session:updated(fn)
+
+        CHECK(session._updated == fn)
+
+        CHECK(n == 1)
+        task.step(1)
+        CHECK(n == 1)
+        task.step(100)
+        CHECK(n == 2)
+        
+        session:stop()
+    end
+
+    do CASE "patch & stop"
+        local session = store:load("patch")
+        local expected = 0
+        local n = 0
+
+        local function increment_money(data: PlayerData, n: number)
+            data.money += n
+            return data
+        end
+
+        skilift.action.normal(increment_money)
+
+        local function fn(value)
+            n += 1
+            CHECK(value.money == expected)
+        end
+        
+        session:updated(fn)
+
+        CHECK(n == 1)
+        task.step(100)
+        CHECK(n == 2)
+        expected += 10
+        session:patch(increment_money, 10)
+        CHECK(n == 3)
+        task.step(100)
+        CHECK(n == 4)
+        expected += 10
+        session:patch(increment_money, 10)
+        CHECK(n == 5)
+
+        CHECK(store._store:GetAsync("patch").data.money ~= expected)
+        session:stop()
+        CHECK(store._store:GetAsync("patch").data.money == expected)
+    end
+
+    do CASE "fail bad patch"
+        local session = store:load("patch-schema-fail")
+
+        local function bad_money(data: PlayerData)
+            data.money = nil :: any
+            return data
+        end
+
+        skilift.action.normal(bad_money)
+
+        local ok = pcall(function()
+            session:patch(bad_money)
+        end)
+
+        CHECK(ok == false)
+
+        session:stop()
     end
 
 end)

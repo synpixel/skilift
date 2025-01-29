@@ -12,7 +12,9 @@ export type StoreOptions<T> = {
     --- with the index. It's important not to change any of the migrations. 
     migrations: { {step: string, migrate: (any) -> (any)} },
     --- Allows you to change the delay before a session pulls data again.
-    pull_delay: number?
+    pull_delay: number?,
+    --- A schema that would be validated against every patch
+    schema: ((unknown) -> boolean)?,
 }
 
 export type Store<T> = {

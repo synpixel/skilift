@@ -32,6 +32,10 @@ local ERRORS = {
     },
     strict_pass_not_json_into_action = {
         msg = `Actions within transactions can only accept valid JSON for parameters! (at %s)`
+    },
+
+    schema_validation_error = {
+        msg = `Schema validation failed on %s after action %s.`
     }
 }
 
@@ -48,6 +52,7 @@ type Errors =
     | "strict_impure_action"
     | "strict_not_json_from_action"
     | "strict_pass_not_json_into_action"
+    | "schema_validation_error"
 
 local function THROW(err: Errors, ...: string)
     error(string.format(ERRORS[err].msg, ...), 3)
