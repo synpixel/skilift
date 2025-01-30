@@ -60,6 +60,27 @@ local function create_migrations_table(session: Session<any>)
     return migrations
 end
 
+local function check_transaction<T>(session: Session<T>, data: StoredData<T>)
+    for _, info in data.pending_transactions do
+        for _, value in info.success do
+            if not actions._.transaction_names[value.fn] then continue end
+            session._why_bad = "unrecognized_transaction"
+            return false
+        end
+    end
+    return true
+end
+
+local function check_migrations<T>(session: Session<T>, data: StoredData<T>)
+    local t = create_migrations_table(session)
+    for _, migration in data.migrations_performed do
+        if table.find(t, migration) then continue end
+        session._why_bad = "unknown_migration"
+        return false
+    end
+    return true
+end
+
 local function run_updated<T>(session: Session<T>)
     local data = session._cached.data
     local fn = session._updated
@@ -85,10 +106,12 @@ local function update<T>(
 
     LOG(`Applying {#changes} changes to {session._name}`)
 
+    if not check_migrations(session, stored) then session._finished = "done"; return nil end
+    if not check_transaction(session, stored) then session._finished = "done"; return nil end
+
     for id, data in stored.pending_transactions do
         local status: "completed" | "failed" | "unknown" = transaction.is_transaction_complete(id)
         LOG(`{session._name}: Pending Transaction Status {id}: {status}`)
-        
         if status == "completed" then
             for _, action in data.success do
                 perform_transaction(stored, action)
@@ -143,9 +166,19 @@ local function pull_auto<T>(session: Session<T>, transactions: { [TransactionId]
     session._next_save_opportunity = session._pull_delay
 
     if not ok then
-        error(`Failed to auto-save {result}`)
+        error(`Failed to pull {result}`)
     end
+    
     session._first_request_succeeded = true
+
+    for _, fn in session._waiting_for_saved do
+        fn()
+    end
+    table.clear(session._waiting_for_saved)
+
+    if result == nil then 
+        error(`Failed to pull as the server has a migration that hasn't been performed`)
+    end
 
     session._cached = result
     LOG(`{session._name} calling updated -`, debug.info(session._updated, "sl"))
@@ -166,6 +199,11 @@ local function force_pull<T>(session: Session<T>)
     end, 1)
     session._first_request_succeeded = true
 
+    for _, fn in session._waiting_for_saved do
+        fn()
+    end
+    table.clear(session._waiting_for_saved)
+
     session._next_save_opportunity = session._pull_delay
     session._cached = result
     LOG(`{session._name} calling updated on force`, debug.info(session._updated, "sl"))
@@ -183,6 +221,7 @@ local function thread<T>(session: Session<T>)
         LOG("triggering auto-save for", session._name)
         local ok, err = pcall(pull_auto, session, {}) -- silence autosave error if emitted
         if not ok then print(err) end
+        if session._why_bad then return end
     end
 end
 
@@ -288,6 +327,8 @@ local function patch_regular<T, U...>(session: Session<T>, fn: Action<T, U...>, 
 end
 
 local function patch<T, U...>(session: Session<T>, fn: Action<T, U...>, ...: U...)
+    if session._finished then THROW("session_already_stopped") end
+
     actions.ASSERT_ACTION(fn)
     if flags.processing_transaction then
         patch_transaction(session, fn, ...)
@@ -297,19 +338,40 @@ local function patch<T, U...>(session: Session<T>, fn: Action<T, U...>, ...: U..
 end
 
 local function updated<T>(session: Session<T>, new: (data: T) -> ())
-    if coroutine.status(session._thread) == "dead" then error("thread is dead") end
+    if session._finished then THROW("session_already_stopped") end
+    
     session._updated = new
     LOG(`{session._name} calling updated register`, debug.info(new, "sl"))
     run_updated(session)
 end
 
 local function stop<T>(session: Session<T>)
+    if session._finished ~= false then return end
+    session._finished = "saving"
     session._updated = NOOP
     task.cancel(session._thread)
-    task.spawn(force_pull, session)
+    task.spawn(function()
+       force_pull(session)
+       session._finished = "done"
+    end)
+end
+
+local function await<T>(session: Session<T>)
+    if session._finished == "done" then return end
+
+    local ok = false
+    table.insert(session._waiting_for_saved, function()
+        ok = true
+    end)
+    while not ok do task.wait() end
+end
+
+local function bad(session: Session<any>)
+    return session._why_bad
 end
 
 local function add_userid<T>(session: Session<T>, user_id: number)
+    if session._finished then THROW("session_already_stopped") end
     table.insert(session._user_ids, user_id)
 end
 
@@ -324,6 +386,7 @@ local function load_session<T>(self: Store<T>, key: string): Session<T>
         _options = self._options,
         _changes = {},
         _pending_transactions = {},
+        _waiting_for_saved = {},
         _next_save_opportunity = 0,
         _updated = NOOP,
         _user_ids = {},
@@ -334,6 +397,7 @@ local function load_session<T>(self: Store<T>, key: string): Session<T>
             data = self._options.default_data()
         },
         _first_request_succeeded = false,
+        _finished = false,
         key = key
     }
 
@@ -342,6 +406,8 @@ local function load_session<T>(self: Store<T>, key: string): Session<T>
     session.stop = stop
     session.userid = add_userid
     session.loaded = loaded
+    session.bad = bad
+    session.await = await
 
     session._thread = task.spawn(thread, session :: any)
 

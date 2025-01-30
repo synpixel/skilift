@@ -36,18 +36,26 @@ do
 
         sessions[player] = session
         session:updated(reconcile_data(player))
+
+        session:await()
+        print(session:loaded(), session:bad())
+        if session:bad() then
+            player:Kick(`player data retrieval error {session:bad()}`)
+        end
+
     end
 
     local function player_removing(player: Player)
         if sessions[player] == nil then return end
         sessions[player]:stop()
+        sessions[player]:await()
         sessions[player] = nil
     end
 
     local function bind_to_close()
         for key, session in sessions do
             session:stop()
-            sessions[key] = nil
+            session:await()
         end
     end
 

@@ -1,7 +1,18 @@
 export type Action<T=any, U...=...any> = (old: T, U...) -> T
 export type JSON = string | number | boolean | buffer | { JSON } | { [string]: JSON }
 
-export type StoreOptions<T> = {
+export type WhyBad = 
+    --- A transaction used on the session cannot be recognized. This is likely
+    --- because the server is outdated, or developer error.
+    | "unrecognized_transaction"
+    --- The data cannot be loaded. This is likely because you're trying to load a
+    --- key that doesn't match the expected data format.
+    | "cannot_load"
+    --- The data has a migration that is unknown to this server. This is likely
+    --- because the server is outdated, or developer error.
+    | "unknown_migration"
+
+export type StoreOptions<T> = { 
     --- The name of the Data Store
     name: string,
     --- The scope of the Data Store
@@ -37,6 +48,10 @@ export type View<T> = {
     version: (View<T>, version: string) -> T?,
 }
 
+export type Connection = {
+    wait: (Connection) -> ()
+}
+
 export type Session<T> = {
     _name: string,
     _store: DataStore,
@@ -51,12 +66,18 @@ export type Session<T> = {
     _cached: StoredData<T>,
     --- The thread responsible for autosaving.
     _thread: thread,
+    --- Threads waiting to resume
+    _waiting_for_saved: { () -> () },
+    --- A reason why the session is not loaded properly
+    _why_bad: WhyBad?,
     --- User IDs for GDPR
     _user_ids: { number },
     --- Indicates if a request has succeeded
     _first_request_succeeded: boolean,
     --- The delay between a pull
     _pull_delay: number,
+    --- Indicates the state it's currently in.
+    _finished: false | "saving" | "done",
 
     key: string,
 
@@ -72,7 +93,11 @@ export type Session<T> = {
     --- Adds a user id to the gdpr list.
     gdpr: (Session<T>, user_id: number) -> (),
     --- Returns if the state has loaded
-    loaded: (Session<T>) -> boolean
+    loaded: (Session<T>) -> boolean,
+    --- Returns an error code if the session is considered "bad".
+    bad: (Session<T>) -> WhyBad?,
+    --- Yields until the next pull happens
+    await: (Session<T>) -> (),
 
     -- ---- SESSION LOCKING ADDENDUM ----
     -- --- Locks data. This should only be used in cases where session locking is

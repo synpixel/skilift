@@ -36,6 +36,9 @@ local ERRORS = {
 
     schema_validation_error = {
         msg = `Schema validation failed on %s after action %s.`
+    },
+    session_already_stopped = {
+        msg = `Session already stopped!`
     }
 }
 
@@ -53,6 +56,7 @@ type Errors =
     | "strict_not_json_from_action"
     | "strict_pass_not_json_into_action"
     | "schema_validation_error"
+    | "session_already_stopped"
 
 local function THROW(err: Errors, ...: string)
     error(string.format(ERRORS[err].msg, ...), 3)
