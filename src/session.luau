@@ -47,7 +47,7 @@ local function perform_transaction<T>(stored: StoredData<T>, action: Transaction
     local fn = actions.obtain_transaction_action(action.fn)
     local values = action.values
 
-    local result = fn(stored.data, unpack(values))
+    local result = fn(util.clone(stored.data), unpack(values))
     if result == nil then THROW("action_does_not_return", action.fn) end
     stored.data = result
 end
@@ -63,7 +63,7 @@ end
 local function check_transaction<T>(session: Session<T>, data: StoredData<T>)
     for _, info in data.pending_transactions do
         for _, value in info.success do
-            if not actions._.transaction_names[value.fn] then continue end
+            if actions._.transaction_names[value.fn] then continue end
             session._why_bad = "unrecognized_transaction"
             return false
         end
@@ -177,7 +177,7 @@ local function pull_auto<T>(session: Session<T>, transactions: { [TransactionId]
     table.clear(session._waiting_for_saved)
 
     if result == nil then 
-        error(`Failed to pull as the server has a migration that hasn't been performed`)
+        error(`Failed to pull as the server has encountered some error: {session._why_bad}`)
     end
 
     session._cached = result
@@ -220,7 +220,7 @@ local function thread<T>(session: Session<T>)
         end
         LOG("triggering auto-save for", session._name)
         local ok, err = pcall(pull_auto, session, {}) -- silence autosave error if emitted
-        if not ok then print(err) end
+        -- if not ok then print(err) end
         if session._why_bad then return end
     end
 end
@@ -326,6 +326,47 @@ local function patch_regular<T, U...>(session: Session<T>, fn: Action<T, U...>, 
     end
 end
 
+local function commit_transaction_early<T, U...>(session: Session<T>, fn: Action<T, U...>, ...: U...)
+    LOG(`Performing "{debug.info(fn, "n")}" for {session._name}`)
+
+    if flags.strict then
+        profilebegin("strict mode")
+        local start = session._cached.data
+        local a = util.clone(start)
+        a = fn(a, ...)
+
+        local b = util.clone(start)
+        b = fn(b, ...)
+
+        -- check if it's valid json in strict mode
+        local ok, err: util.JSONError = pcall(util.check_json_valid, a)
+
+        if ok == false then
+            THROW("strict_not_json_from_action", debug.info(fn, "s"), tostring(err))
+        end
+        -- it's valid json, but we have to make sure it's pure
+        if not util.delta_eq(a, b) then
+            THROW("strict_impure_action", debug.info(fn, "sl"))
+        end
+        profileend()
+
+        if session._options.schema and not session._options.schema(a) then
+            THROW("schema_validation_error", session._name, debug.info(fn, "n"))
+        end
+
+        session._cached.data = a
+        run_updated(session)
+    else
+        local result = fn(session._cached.data, ...)
+
+        if session._options.schema and not session._options.schema(result) then
+            THROW("schema_validation_error", session._name, debug.info(fn, "n"))
+        end
+
+        session._cached.data = result
+    end
+end
+
 local function patch<T, U...>(session: Session<T>, fn: Action<T, U...>, ...: U...)
     if session._finished then THROW("session_already_stopped") end
 
@@ -419,5 +460,5 @@ return {
     pull_auto = pull_auto,
     force_pull = force_pull,
     perform_transaction = perform_transaction,
-    patch_regular = patch_regular
+    commit_transaction_early = commit_transaction_early
 }

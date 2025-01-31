@@ -91,7 +91,7 @@ export type Session<T> = {
     --- performs one more save. Releases the lock if it was locked.
     stop: (Session<T>) -> (),
     --- Adds a user id to the gdpr list.
-    gdpr: (Session<T>, user_id: number) -> (),
+    userid: (Session<T>, user_id: number) -> (),
     --- Returns if the state has loaded
     loaded: (Session<T>) -> boolean,
     --- Returns an error code if the session is considered "bad".

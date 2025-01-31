@@ -87,7 +87,7 @@ local function create_transaction(success: (() -> ()), failure: (() -> ())?)
             LOG(`{uuid}: Pulling {session._name}`)
             for _, action in (if ok == true then info.success else info.failure) do
                 local fn = actions.obtain_transaction_action(action.fn)
-                Session.patch_regular(session, fn, unpack(action.values))
+                Session.commit_transaction_early(session, fn, unpack(action.values))
             end
         end
         
@@ -98,7 +98,7 @@ local function create_transaction(success: (() -> ()), failure: (() -> ())?)
             LOG(`{uuid}: Pulling {session._name}`)
             for _, action in info.failure do
                 local fn = actions.obtain_transaction_action(action.fn)
-                Session.patch_regular(session, fn, unpack(action.values))
+                Session.commit_transaction_early(session, fn, unpack(action.values))
             end
         end
 

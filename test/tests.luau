@@ -228,6 +228,7 @@ TEST("transaction", function()
         
         -- we need to simulate a failure within the ds library.
         ds.deny_requests(2)
+        print(session1:bad())
         local status = skilift.transaction(function()
             session1:patch(success_action)
             session2:patch(success_action)
@@ -330,7 +331,38 @@ TEST("strict mode", function()
     skilift.action.normal(recursive_table)
     skilift.action.normal(bad_type)
     skilift.action.transaction(recursive_table, "recursive-table")
-    
+
+    local function update(data: PlayerData)
+        data.money += 1
+        return data
+    end
+    skilift.action.normal(update)
+    skilift.action.transaction(update, 'increment')
+
+    do CASE "multiple updates only update once"
+        local session = store:load("key")
+        local expected = 0
+        local first = false
+
+        session:updated(function(data)
+            if first then first = false; return end
+            print(data.money, expected)
+            CHECK(data.money == expected)
+        end)
+
+        expected += 1
+        session:patch(update)
+
+        expected += 1
+        session:patch(update)
+
+        expected += 1
+        first = true
+        skilift.transaction(function()
+            session:patch(update)
+        end)
+    end
+
     do CASE "fail impure function"
         local session = store:load("impure")
 
