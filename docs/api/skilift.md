@@ -43,7 +43,7 @@ Initiates a transaction
 
 - **Details**
 
-    Returns a boolean indicating if the transaction was succesful or not. View the transaction article in advanced concepts for more information about how to properly handle transactions.
+    Returns a boolean indicating if the transaction was successful or not. View the transaction article in advanced concepts for more information about how to properly handle transactions.
 
 ### strict()
 
@@ -81,4 +81,4 @@ Registers a function as a pure function, allowing it to be used for patching wit
 
 - **Details**
 
-    Name must be unique. It's key that when ensuring compatbility, to NEVER remove, or modify a function marked as a transaction. It may corrupt or leave player saves in a bad state. Once this is pushed to production, it should never be removed.
+    Name must be unique. It's key that when ensuring compatibility, to NEVER remove, or modify a function marked as a transaction. It may corrupt or leave player saves in a bad state. Once this is pushed to production, it should never be removed.

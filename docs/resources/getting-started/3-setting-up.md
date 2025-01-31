@@ -37,7 +37,7 @@ end)
 
 ## Updating the data
 
-Your data is updated by atomic operations or actions as skilift refers to them. They are pure functions that operate on your data. The more specific an action is, the better. For example, it's better to use an `add_money` action for giving somoeone money than a `set_money` action as it's more specific.
+Your data is updated by atomic operations or actions as skilift refers to them. They are pure functions that operate on your data. The more specific an action is, the better. For example, it's better to use an `add_money` action for giving someone money than a `set_money` action as it's more specific.
 
 Actions need to be registered before they can be used.
 

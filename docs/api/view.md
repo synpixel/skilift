@@ -39,7 +39,7 @@ Fetches a specific version of the key.
 
 ### timestamp
 
-Fetches  verstheion of the key at the given timestamp.
+Fetches version of the key at the given timestamp.
 
 - Type
 
