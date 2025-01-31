@@ -1,5 +1,5 @@
 name = "alicesaidhi/skilift"
-version = "0.2.1"
+version = "0.2.2"
 private = true
 authors = ["alicesaidhi"]
 repository = "https://github.com/alicesaidhi/skilift"
@@ -20,4 +20,4 @@ sourcemap_generator = ".pesde/scripts/sourcemap_generator.luau"
 
 [dependencies]
 vide = { wally = "wally#centau/vide", version = "^0.3.1" }
-skilift = { name = "alicesaidhi/skilift", version = "^0.2.1", target = "roblox_server" }
+skilift = { name = "alicesaidhi/skilift", version = "^0.2.2", target = "roblox_server" }
