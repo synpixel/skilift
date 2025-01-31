@@ -38,7 +38,6 @@ do
         session:updated(reconcile_data(player))
 
         session:await()
-        print(session:loaded(), session:bad())
         if session:bad() then
             player:Kick(`player data retrieval error {session:bad()}`)
         end

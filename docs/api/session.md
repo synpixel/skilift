@@ -55,10 +55,35 @@ Adds a User Id to an array, which will be used for tracking GDPR metadata.
 
     ```luau
     function session<T>:userid(user: number)
+    ```
 
 - Details
 
     This isn't saved. You'll have to call this on every server you join.
+
+### await
+
+Waits until the next request has completed. Use this along with `:stop()` to listen when the store has succesfully saved, or when loading to determine when the data finished loading exactly.
+
+- Type
+
+    ```luau
+    function session<T>:await()
+    ```
+
+### bad
+
+Returns a reason why data is considered bad. It's recommended to check this frequently, as data can be considered bad when skilift sees a migration that doesn't exist, or an action on a transaction it can't recognize.
+
+- Type
+
+    ```luau
+    function session<T>:bad()
+    ```
+
+- Details
+
+    When skilift encounters a session it determines to be "bad", it automatically calls `:stop()` on that session. This is okay, since sessions considered bad should never be edited by the server. It's recommended to kick the player when it's determined that their data is bad.
 
 ## Properties
 
