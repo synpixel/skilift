@@ -1,0 +1,38 @@
+{
+  "name": "@rbxts/skilift",
+  "version": "0.2.2",
+  "description": "A session lockless general datastore library",
+  "main": "src/lib.luau",
+	"types": "src/lib.d.ts",
+  "homepage": "https://github.com/alicesaidhi/skilift",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alicesaidhi/skilift"
+  },
+  "directories": {
+    "doc": "docs",
+    "example": "example",
+    "test": "test"
+  },
+  "files": [
+    "LICENSE",
+    "README.md",
+    "src/*"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "alicesaidhi",
+  "license": "MIT",
+  "devDependencies": {
+    "@rbxts/compiler-types": "^3.0.0-types.0",
+    "@rbxts/types": "^1.0.820",
+    "eslint": "^9.20.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.3",
+    "eslint-plugin-roblox-ts": "^0.0.36",
+    "prettier": "^3.5.0",
+    "roblox-ts": "^3.0.0",
+    "typescript": "^5.7.3"
+  }
+}
