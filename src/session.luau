@@ -29,7 +29,7 @@ type TransactionData = types.TransactionData
 local function migrate<T>(session: Session<T>, stored: StoredData<T>)
     local migrations = session._options.migrations
 
-    if #migrations == #stored.migrations_performed then return end
+    if #migrations == #stored.migrations_performed then return false end
     LOG(`{session._name}: Performing Migration`)
     for i, migration in migrations do
         if table.find(stored.migrations_performed, migration) then continue end
@@ -41,6 +41,7 @@ local function migrate<T>(session: Session<T>, stored: StoredData<T>)
 
         table.insert(stored.migrations_performed, migration.step)
     end
+    return true
 end
 
 local function perform_transaction<T>(stored: StoredData<T>, action: TransactionAction)
@@ -96,6 +97,8 @@ local function update<T>(
     stored: StoredData<T>,
     db_key_info: DataStoreKeyInfo?
 ): StoredData<T>?
+
+    local did_anything = false
     if db_key_info == nil then
         stored = {
             pending_transactions = {},
@@ -117,11 +120,13 @@ local function update<T>(
                 perform_transaction(stored, action)
             end
             stored.pending_transactions[id] = nil
+            did_anything = true
         elseif status == "failed" then
             for _, action in data.failure do
                 perform_transaction(stored, action)
             end
             stored.pending_transactions[id] = nil
+            did_anything = true
         elseif status == "unknown" then
             -- transaction status is unknown. nothing happens
         else
@@ -129,11 +134,12 @@ local function update<T>(
         end
     end
 
-    migrate(session, stored)
+    if migrate(session, stored) then did_anything = true end
 
     for id, data in pending_transactions do
         LOG(`Added transaction {id} to {session._name}`)
         stored.pending_transactions[id] = data
+        did_anything = true
     end
 
     for _, action in changes do
@@ -142,6 +148,12 @@ local function update<T>(
         local result = fn(stored.data, unpack(action, 2))
         if result == nil then THROW("action_does_not_return", debug.info(fn, "n")) end
         stored.data = result
+        did_anything = true
+    end
+
+    if did_anything == false then
+        LOG(`No data has updated for {session._name}. Cancelling update.`)
+        return nil
     end
 
     LOG(`Returning updated data for {session._name}`)
@@ -158,9 +170,13 @@ local function pull_auto<T>(session: Session<T>, transactions: { [TransactionId]
     budget.delay_until_meets_budget("update", 5)
 
     local ok, result: StoredData<T> = pcall(function()
-        return store:UpdateAsync(key, function(value, keyinfo)
-            return update(session, swap, transactions, value, keyinfo)
+        local new_data
+        store:UpdateAsync(key, function(value, keyinfo)
+            local updated_value = update(session, swap, transactions, value, keyinfo)
+            new_data = if updated_value == nil then value else updated_value
+            return updated_value
         end)
+        return new_data
     end)
 
     session._next_save_opportunity = session._pull_delay
@@ -193,9 +209,13 @@ local function force_pull<T>(session: Session<T>)
 
     local result: StoredData<T> = retry.regular_retry(function()
         budget.delay_until_meets_budget("update", 5)
-        return store:UpdateAsync(key, function(value, keyinfo)
-            return update(session, swap, {}, value, keyinfo)
+        local new_data
+        store:UpdateAsync(key, function(value, keyinfo)
+            local updated_value = update(session, swap, {}, value, keyinfo)
+            new_data = if updated_value == nil then value else updated_value
+            return updated_value
         end)
+        return new_data
     end, 1)
     session._first_request_succeeded = true
 
