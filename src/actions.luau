@@ -20,16 +20,17 @@ local function ASSERT_ACTION(action: Action)
     end
 end
 
-
 local function register_action(action: Action)
     if flags.disable_new_actions then THROW("cannot_make_action") end
     actions[action] = true
+    return action
 end
 
 local function register_transaction_action(action: Action, name: string)
     if flags.disable_new_actions then THROW("cannot_make_action") end
     transaction_actions[action] = name
     transaction_names[name] = action
+    return action
 end
 
 local function create_record(action: Action, ...: any)

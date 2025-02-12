@@ -1,13 +1,13 @@
 {
   "name": "@rbxts/skilift",
-  "version": "0.2.2",
+  "version": "0.1.0",
   "description": "A session lockless general datastore library",
   "main": "src/lib.luau",
 	"types": "src/lib.d.ts",
   "homepage": "https://github.com/alicesaidhi/skilift",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/alicesaidhi/skilift"
+    "url": "git+https://github.com/alicesaidhi/skilift.git"
   },
   "directories": {
     "doc": "docs",
@@ -24,6 +24,9 @@
   },
   "author": "alicesaidhi",
   "license": "MIT",
+  "publishConfig": {
+		"access": "public"
+	},
   "devDependencies": {
     "@rbxts/compiler-types": "^3.0.0-types.0",
     "@rbxts/types": "^1.0.820",
