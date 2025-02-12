@@ -1,7 +1,7 @@
 
 
 
-export = Skilift
+export default Skilift
 export as namespace Skilift
 
 // declare class DataStoreKeyInfo {
@@ -22,11 +22,11 @@ export as namespace Skilift
 // }
 
 declare type Migration = { step: string, migrate: (old: unknown) => unknown }
-declare type Migrations = Migration[]
+export declare type Migrations = Migration[]
 
-declare type Action<T, U extends unknown[]> = (old: T, params: LuaTuple<U>) => T
+export declare type Action<T, U extends unknown[]> = (old: T, params: LuaTuple<U>) => T
 
-declare interface StoreOptions<DefaultData> {
+export declare interface StoreOptions<DefaultData> {
     /**
      * The name of the Data Store to retrieve.
      */
@@ -52,7 +52,7 @@ declare interface StoreOptions<DefaultData> {
      * @param unknown 
      * @returns 
      */
-    schema?: (unknown) => boolean,
+    schema?: (value: unknown) => boolean,
     /**
      * A custom specified delay on when data is auto-saved.
      */
@@ -60,7 +60,7 @@ declare interface StoreOptions<DefaultData> {
 
 }
 
-declare class Session<T> {
+export declare class Session<T> {
     /**
      * Patches the currently stored data with a given patcher function.
      * Patches will apply immediately outside of a transaction.
@@ -68,7 +68,7 @@ declare class Session<T> {
      * @param fn 
      * @param params 
      */
-    patch<U extends unknown[]>(this: Session<T>, fn: Action<T, U>, params: LuaTuple<U>): void
+    patch<U extends unknown[]>(this: Session<T>, fn: Action<T, U>, ...params: U[]): void
     /**
      * Binds a callback to whenever a session is updated. Sessions should serve
      * as a source of truth for your game, so inside the callback you should
@@ -99,14 +99,14 @@ declare class Session<T> {
     bad(this: Session<T>): "unrecognized_transaction" | "unknown_migration" | undefined
 }
 
-declare class View<T> {
+export declare class View<T> {
     latest(this: View<T>): T
     version(this: View<T>, version: string): T
     timestamp(this: View<T>, unix: number): T
 
 }
 
-declare class Store<T> {
+export declare class Store<T> {
     /**
      * Loads a key and returns a new session actively pulling that key.
      * @param this 
@@ -155,5 +155,5 @@ declare namespace Skilift {
      * Replaces all calls to DataStoreService with a provided mock interface of DataStoreService.
      * @param datastoreservice 
      */
-    function mock(datastoreservice: DataStoreService)
+    function mock(datastoreservice: DataStoreService): void
 }
