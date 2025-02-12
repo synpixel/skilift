@@ -14,6 +14,10 @@ local TRANSACTION_SCOPE = "global"
 type TransactionInfo = types.TransactionInfo
 type TransactionId = types.TransactionId
 
+local function escape_transaction()
+
+end
+
 local function create_transaction(success: (() -> ()), failure: (() -> ())?)
     local TRANSACTION_STORE = flags.datastoreservice:GetDataStore(TRANSACTION_NAME, TRANSACTION_SCOPE)
     
@@ -52,6 +56,8 @@ local function create_transaction(success: (() -> ()), failure: (() -> ())?)
     for _ in transaction_info.sessions do
         total += 1
     end
+
+    if total == 0 then return true end
 
     LOG(`{uuid}: WAITING FOR {total + 6} UPDATE BUDGET FOR {total} SESSIONS, CURRENT: {budget.get_budget("update")}`)
     budget.delay_until_meets_budget("update", total + 6)
