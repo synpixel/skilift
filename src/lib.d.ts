@@ -126,8 +126,8 @@ declare class Store<T> {
 declare namespace Skilift {
 
     const action: {
-        normal<T, U extends unknown[]>(this: void, action: Action<T, U>): void
-        transaction<T, U extends unknown[]>(this: void, action: Action<T, U>, name: string): void
+        normal: <T, U extends unknown[]>(this: void, action: Action<T, U>) => void
+        transaction: <T, U extends unknown[]>(this: void, action: Action<T, U>, name: string) => void
     }
 
     /**
