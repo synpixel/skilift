@@ -24,7 +24,7 @@ export as namespace Skilift
 declare type Migration = { step: string, migrate: (old: unknown) => unknown }
 export declare type Migrations = Migration[]
 
-export declare type Action<T, U extends unknown[]> = (old: T, params: LuaTuple<U>) => T
+export declare type Action<T, U extends unknown[]> = (old: T, ...params: U) => T
 
 export declare interface StoreOptions<DefaultData> {
     /**
@@ -68,7 +68,7 @@ export declare class Session<T> {
      * @param fn 
      * @param params 
      */
-    patch<U extends unknown[]>(this: Session<T>, fn: Action<T, U>, ...params: U[]): void
+    patch<U extends unknown[]>(this: Session<T>, fn: Action<T, U>, ...params: U): void
     /**
      * Binds a callback to whenever a session is updated. Sessions should serve
      * as a source of truth for your game, so inside the callback you should
