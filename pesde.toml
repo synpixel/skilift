@@ -1,5 +1,5 @@
 name = "alicesaidhi/skilift"
-version = "0.2.2"
+version = "0.2.3"
 description = "Lockless DataStore library"
 authors = ["alicesaidhi"]
 repository = "https://github.com/alicesaidhi/skilift"
@@ -12,7 +12,7 @@ includes = [
 ]
 
 [target]
-environment = "roblox_server"
+environment = "roblox"
 lib = "src/init.luau"
 build_files = ["src"]
 
