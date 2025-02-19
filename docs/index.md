@@ -9,7 +9,7 @@ next:
 hero:
   name: "skilift"
   text: Lockless Datastore Library
-  tagline: Modern library without session locking for player data.
+  tagline: Modern datastore library without session locking.
   image:
     src: /logo.svg
   actions:
