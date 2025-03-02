@@ -225,7 +225,7 @@ local function force_pull<T>(session: Session<T>)
     table.clear(session._waiting_for_saved)
 
     session._next_save_opportunity = session._pull_delay
-    session._cached = result
+    session._cached = if result == nil then session._cached else result
     LOG(`{session._name} calling updated on force`, debug.info(session._updated, "sl"))
     run_updated(session)
 end
