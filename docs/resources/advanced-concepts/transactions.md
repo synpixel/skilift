@@ -36,11 +36,11 @@ local function take_money(data: PlayerData, n: number)
     return data
 end
 
-skilift.action.normal(give_money)
-skilift.action.normal(take_money)
+store:action(give_money)
+store:action(take_money)
 
-skilift.action.transaction(give_money, "give_money")
-skilift.action.transaction(take_money, "take_money")
+store:transaction(give_money, "give_money")
+store:transaction(take_money, "take_money")
 
 -- when the transaction succeeds, it takes money from bob and gives money to tom
 local ok = skilift.transaction(function()

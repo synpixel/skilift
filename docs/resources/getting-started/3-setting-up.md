@@ -55,8 +55,8 @@ local function add_money(data: PlayerData, n: number)
     return data
 end
 
-skilift.action.normal(set_money)
-skilift.action.normal(add_money)
+store:action(set_money)
+store:action(add_money)
 
 store:patch(add_money, 100)
 ```

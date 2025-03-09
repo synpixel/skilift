@@ -58,27 +58,3 @@ Sets or reads the currently stored value for strict mode.
 - **Details**
 
     View the [strict mode](../resources/advanced-concepts/strict-mode.md) resource for more information on what strict mode does.
-
-### action.normal()
-
-Registers a function as a pure function, allowing it to be used for patching sessions.
-
-- **Type**
-
-    ```luau
-    function skilift.action.normal(fn: () -> ())
-    ```
-
-### action.transaction()
-
-Registers a function as a pure function, allowing it to be used for patching within a transaction. These actions are deferred and not applied immediately. Unlike regular actions, these actions must be provided with a **unique** name.
-
-- **Type**
-
-    ```luau
-    function skilift.action.transaction(fn: () -> (), name: string)
-    ```
-
-- **Details**
-
-    Name must be unique. It's key that when ensuring compatibility, to NEVER remove, or modify a function marked as a transaction. It may corrupt or leave player saves in a bad state. Once this is pushed to production, it should never be removed.
