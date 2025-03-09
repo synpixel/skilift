@@ -18,33 +18,6 @@ local function schema(t)
     return true
 end
 
-TEST("registering actions", function()
-    local actions = require("../src/actions")
-
-    do CASE "register action"
-        local function increment_money(data: PlayerData, n: number)
-            data.money += n
-            return data
-        end
-
-        skilift.action.normal(increment_money)
-
-        CHECK(actions._.actions[increment_money])
-    end
-
-    do CASE "register transaction action"
-        local function increment_money(data: PlayerData, n: number)
-            data.money += n
-            return data
-        end
-
-        skilift.action.transaction(increment_money, "increment_money_1")
-
-        CHECK(actions._.transaction_actions[increment_money] == "increment_money_1")
-        CHECK(actions._.transaction_names["increment_money_1"] == increment_money)
-    end
-end)
-
 TEST("store", function()
     
     do CASE "create store"
@@ -60,6 +33,39 @@ TEST("store", function()
 
         CHECK(store)
         CHECK(store._store.Name)
+    end
+
+    local store = skilift.store {
+        name = "test",
+        migrations = {},
+        default_data = function()
+            return {
+                money = 0
+            }
+        end
+    }
+
+    do CASE "register action"
+        local function increment_money(data: PlayerData, n: number)
+            data.money += n
+            return data
+        end
+
+        store:action(increment_money)
+
+        CHECK(store._allowed_actions[increment_money])
+    end
+
+    do CASE "register transaction action"
+        local function increment_money(data: PlayerData, n: number)
+            data.money += n
+            return data
+        end
+
+        store:transaction("increment_money_1", increment_money)
+
+        CHECK(store._transaction_actions[increment_money] == "increment_money_1")
+        CHECK(store._transaction_names["increment_money_1"] == increment_money)
     end
 
 end)
@@ -94,7 +100,7 @@ TEST("session", function()
         
         session:updated(fn)
 
-        CHECK(session._updated == fn)
+        CHECK(session._.updated == fn)
         task.step(1)
         CHECK(n > 0)
         session:stop()
@@ -111,13 +117,19 @@ TEST("session", function()
         
         session:updated(fn)
 
-        CHECK(session._updated == fn)
+        CHECK(session._.updated == fn)
 
-        CHECK(n == 1)
-        task.step(1)
         CHECK(n == 1)
         task.step(100)
         CHECK(n == 2)
+        -- trigger a change
+        session._.datastore:SetAsync("auto-save", {
+            pending_transactions = {},
+            migrations_performed = {},
+            data = { money = 0 }
+        })
+        task.step(100)
+        CHECK(n == 3)
         
         session:stop()
     end
@@ -132,7 +144,7 @@ TEST("session", function()
             return data
         end
 
-        skilift.action.normal(increment_money)
+        store:action(increment_money)
 
         local function fn(value)
             n += 1
@@ -154,7 +166,7 @@ TEST("session", function()
         CHECK(n == 5)
 
         session:stop()
-        CHECK(store._store:GetAsync("patch").data.money == expected)
+        CHECK(session._.datastore:GetAsync("patch").data.money == expected)
     end
 
     do CASE "patch nested"
@@ -165,7 +177,7 @@ TEST("session", function()
             return data
         end
 
-        skilift.action.normal(patch)
+        store:action(patch)
 
         session:patch(patch, 10)
 
@@ -194,7 +206,7 @@ TEST("transaction", function()
             return data
         end
     
-        skilift.action.transaction(success_action, "success-0")
+        store:transaction("success-0", success_action)
     
         local session2 = store:load("key-2")
         local session1 = store:load("key-1")
@@ -205,8 +217,8 @@ TEST("transaction", function()
         end)
 
         CHECK(status)
-        CHECK(session1._cached.data.ok == 1)
-        CHECK(session2._cached.data.ok == 1)
+        CHECK(session1._.cached.data.ok == 1)
+        CHECK(session2._.cached.data.ok == 1)
     end
 
     do CASE "call failure action"
@@ -220,8 +232,8 @@ TEST("transaction", function()
             return data
         end
     
-        skilift.action.transaction(success_action, "success-1")
-        skilift.action.transaction(fail_action, "failure-1")
+        store:transaction("success-1", success_action)
+        store:transaction("failure-1", fail_action)
     
         local session2 = store:load("key-2")
         local session1 = store:load("key-1")
@@ -238,8 +250,8 @@ TEST("transaction", function()
         end)
 
         CHECK(not status)
-        CHECK(session1._cached.data.fail == 1)
-        CHECK(session2._cached.data.fail == 1)
+        CHECK(session1._.cached.data.fail == 1)
+        CHECK(session2._.cached.data.fail == 1)
     end
 
 end)
@@ -325,19 +337,19 @@ TEST("strict mode", function()
         return data
     end
 
-    skilift.action.normal(impure_action)
-    skilift.action.normal(non_real_number)
-    skilift.action.normal(non_string_key)
-    skilift.action.normal(recursive_table)
-    skilift.action.normal(bad_type)
-    skilift.action.transaction(recursive_table, "recursive-table")
+    store:action(impure_action)
+    store:action(non_real_number)
+    store:action(non_string_key)
+    store:action(recursive_table)
+    store:action(bad_type)
+    store:transaction("recursive-table", recursive_table)
 
     local function update(data: PlayerData)
         data.money += 1
         return data
     end
-    skilift.action.normal(update)
-    skilift.action.transaction(update, 'increment')
+    store:action(update)
+    store:transaction('increment', update)
 
     do CASE "multiple updates only update once"
         local session = store:load("key")
@@ -465,7 +477,7 @@ TEST("schema", function()
         
         session:updated(fn)
 
-        CHECK(session._updated == fn)
+        CHECK(session._.updated == fn)
         task.step(1)
         CHECK(n > 0)
         session:stop()
@@ -482,7 +494,7 @@ TEST("schema", function()
         
         session:updated(fn)
 
-        CHECK(session._updated == fn)
+        CHECK(session._.updated == fn)
 
         CHECK(n == 1)
         task.step(1)
@@ -503,7 +515,7 @@ TEST("schema", function()
             return data
         end
 
-        skilift.action.normal(increment_money)
+        store:action(increment_money)
 
         local function fn(value)
             n += 1
@@ -537,7 +549,7 @@ TEST("schema", function()
             return data
         end
 
-        skilift.action.normal(bad_money)
+        store:action(bad_money)
 
         local ok = pcall(function()
             session:patch(bad_money)
@@ -567,11 +579,13 @@ TEST("reliability tests", function()
         return data
     end
 
-    skilift.action.normal(increment_money)
-    skilift.action.transaction(increment_money, "increment-money")
+    store:action(increment_money)
+    store:transaction(increment_money, "increment-money")
+
+    local datastore = ds.DataStoreService:GetDataStore("test")
 
     do CASE "obtain data after request failure"
-        store._store:SetAsync("test-failure", { pending_transactions = {}, migrations_performed = {}, data = { money = 1000 } })
+        datastore:SetAsync("test-failure", { pending_transactions = {}, migrations_performed = {}, data = { money = 1000 } })
 
         ds.simulate_outage(true)
         local session = store:load("test-failure")
@@ -591,7 +605,7 @@ TEST("reliability tests", function()
     end
 
     do CASE "concurrent writing to same key"
-        store._store:SetAsync("test-concurrent", { pending_transactions = {}, migrations_performed = {}, data = { money = 1000 } })
+        datastore:SetAsync("test-concurrent", { pending_transactions = {}, migrations_performed = {}, data = { money = 1000 } })
 
         local session = store:load("test-concurrent")
         local expected_money = 1000
@@ -605,10 +619,10 @@ TEST("reliability tests", function()
         session:patch(increment_money, 10)
 
         task.step(100)
-        store._store:SetAsync("test-concurrent", { pending_transactions = {}, migrations_performed = {}, data = { money = 10000 } })
+        datastore:SetAsync("test-concurrent", { pending_transactions = {}, migrations_performed = {}, data = { money = 10000 } })
         expected_money = 10000
         task.step(100)
-        store._store:SetAsync("test-concurrent", { pending_transactions = {}, migrations_performed = {}, data = { money = 3000 } })
+        datastore:SetAsync("test-concurrent", { pending_transactions = {}, migrations_performed = {}, data = { money = 3000 } })
         expected_money += 10
         session:patch(increment_money, 10)
         expected_money += 10

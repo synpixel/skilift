@@ -27,13 +27,13 @@ type TransactionAction = types.TransactionAction
 type TransactionData = types.TransactionData
 
 local function migrate<T>(session: Session<T>, stored: StoredData<T>)
-    local migrations = session._options.migrations
+    local migrations = session._.options.migrations
 
     if #migrations == #stored.migrations_performed then return false end
-    LOG(`{session._name}: Performing Migration`)
+    LOG(`{session.name}: Performing Migration`)
     for i, migration in migrations do
         if table.find(stored.migrations_performed, migration) then continue end
-        LOG(`{session._name}: Migration Step {migration.step}`)
+        LOG(`{session.name}: Migration Step {migration.step}`)
 
         local result = migration.migrate(stored.data)
         if result == nil then THROW("migration_does_not_return", migration.step) end
@@ -44,8 +44,8 @@ local function migrate<T>(session: Session<T>, stored: StoredData<T>)
     return true
 end
 
-local function perform_transaction<T>(stored: StoredData<T>, action: TransactionAction)
-    local fn = actions.obtain_transaction_action(action.fn)
+local function perform_transaction<T>(store: Store<T>, stored: StoredData<T>, action: TransactionAction)
+    local fn = actions.obtain_transaction_action(store, action.fn)
     local values = action.values
 
     local result = fn(util.clone(stored.data), unpack(values))
@@ -55,17 +55,18 @@ end
 
 local function create_migrations_table(session: Session<any>)
     local migrations = {}
-    for i, migration in session._options.migrations do
+    for i, migration in session._.options.migrations do
         table.insert(migrations, migration.step)
     end
     return migrations
 end
 
-local function check_transaction<T>(session: Session<T>, data: StoredData<T>)
+local function check_transaction<T>(store: Store<T>, session: Session<T>, data: StoredData<T>)
     for _, info in data.pending_transactions do
         for _, value in info.success do
-            if actions._.transaction_names[value.fn] then continue end
-            session._why_bad = "unrecognized_transaction"
+            if store._transaction_names[value.fn] then continue end
+            session._.why_bad = `Transaction could not be processed: Unable to recognize the action "{value.fn}"`
+            LOG(session._.why_bad)
             return false
         end
     end
@@ -76,15 +77,16 @@ local function check_migrations<T>(session: Session<T>, data: StoredData<T>)
     local t = create_migrations_table(session)
     for _, migration in data.migrations_performed do
         if table.find(t, migration) then continue end
-        session._why_bad = "unknown_migration"
+        session._.why_bad = `Migration could not be completed: Unable to apply "{migration}"`
+        LOG(session._.why_bad)
         return false
     end
     return true
 end
 
 local function run_updated<T>(session: Session<T>)
-    local data = session._cached.data
-    local fn = session._updated
+    local data = session._.cached.data
+    local fn = session._.updated
     local copy = util.deep_freeze(util.clone(data))
 
     return fn(copy)
@@ -98,32 +100,37 @@ local function update<T>(
     db_key_info: DataStoreKeyInfo?
 ): StoredData<T>?
 
+    local store = session._.store
     local did_anything = false
-    if db_key_info == nil then
+    local is_nil = stored == nil
+    if stored == nil then
         stored = {
             pending_transactions = {},
             migrations_performed = create_migrations_table(session),
-            data = session._options.default_data()
+            data = session._.options.default_data()
         }
     end
 
-    LOG(`Applying {#changes} changes to {session._name}`)
+    LOG(`Applying {#changes} changes to {session.name}`)
 
-    if not check_migrations(session, stored) then session._finished = "done"; return nil end
-    if not check_transaction(session, stored) then session._finished = "done"; return nil end
+    if not check_migrations(session, stored) then
+        session._.finished = "done"
+        return nil
+    end
+    if not check_transaction(store, session, stored) then session._.finished = "done"; return nil end
 
     for id, data in stored.pending_transactions do
         local status: "completed" | "failed" | "unknown" = transaction.is_transaction_complete(id)
-        LOG(`{session._name}: Pending Transaction Status {id}: {status}`)
+        LOG(`{session.name}: Pending Transaction Status {id}: {status}`)
         if status == "completed" then
             for _, action in data.success do
-                perform_transaction(stored, action)
+                perform_transaction(store, stored, action)
             end
             stored.pending_transactions[id] = nil
             did_anything = true
         elseif status == "failed" then
             for _, action in data.failure do
-                perform_transaction(stored, action)
+                perform_transaction(store, stored, action)
             end
             stored.pending_transactions[id] = nil
             did_anything = true
@@ -137,7 +144,7 @@ local function update<T>(
     if migrate(session, stored) then did_anything = true end
 
     for id, data in pending_transactions do
-        LOG(`Added transaction {id} to {session._name}`)
+        LOG(`Added transaction {id} to {session.name}`)
         stored.pending_transactions[id] = data
         did_anything = true
     end
@@ -151,101 +158,113 @@ local function update<T>(
         did_anything = true
     end
 
-    if did_anything == false then
-        LOG(`No data has updated for {session._name}. Cancelling update.`)
+    if did_anything == false and not is_nil then
+        LOG(`No data has updated for {session.name}. Cancelling update.`)
         return nil
     end
 
-    LOG(`Returning updated data for {session._name}`)
+    LOG(`Returning updated data for {session.name}`)
 
     table.clear(changes)
-    return stored, session._user_ids
+    return stored, session._.user_ids
 end
 
 local function pull_auto<T>(session: Session<T>, transactions: { [TransactionId]: TransactionData })
-    local swap = session._changes
-    local store, key = session._store, session.key
+    local swap = session._.changes
+    local store, key = session._.datastore, session.key
 
-    session._next_save_opportunity = math.huge
+    session._.next_save_opportunity = math.huge
     budget.delay_until_meets_budget("update", 5)
 
+    LOG("saving", session.name)
     local ok, result: StoredData<T> = pcall(function()
+        LOG("attempting auto-save")
         local new_data
         store:UpdateAsync(key, function(value, keyinfo)
+            LOG("retrieved", value)
             local updated_value = update(session, swap, transactions, value, keyinfo)
             new_data = if updated_value == nil then value else updated_value
+            LOG(if updated_value ~= nil then "saved new data" else "cancelled update as no change has been made")
             return updated_value
         end)
+        LOG("FINISHED SAVE")
         return new_data
     end)
 
-    session._next_save_opportunity = session._pull_delay
+    session._.next_save_opportunity = session._.pull_delay
 
     if not ok then
         error(`Failed to pull {result}`)
     end
     
-    session._first_request_succeeded = true
+    session._.first_request_succeeded = true
 
-    for _, fn in session._waiting_for_saved do
+    for _, fn in session._.waiting_for_saved do
         fn()
     end
-    table.clear(session._waiting_for_saved)
+    table.clear(session._.waiting_for_saved)
 
-    if result == nil then 
-        error(`Failed to pull as the server has encountered some error: {session._why_bad}`)
+    if session._.why_bad then 
+        error(`Failed to pull as the server has encountered some error: {session._.why_bad}`)
     end
 
-    session._cached = result
-    LOG(`{session._name} calling updated -`, debug.info(session._updated, "sl"))
+    LOG("value is", result)
+    session._.cached = result
+    LOG(`{session.name} calling updated -`, debug.info(session._.updated, "sl"))
     run_updated(session)
 end
 
 local function force_pull<T>(session: Session<T>)
-    local swap = session._changes
-    local store, key = session._store, session.key
+    LOG("forcing save")
+    local swap = session._.changes
+    local store, key = session._.datastore, session.key
 
-    session._next_save_opportunity = math.huge
+    session._.next_save_opportunity = math.huge
 
     local result: StoredData<T> = retry.regular_retry(function()
+        LOG("waiting until budget is met")
         budget.delay_until_meets_budget("update", 5)
         local new_data
+        LOG("performing save")
         store:UpdateAsync(key, function(value, keyinfo)
             local updated_value = update(session, swap, {}, value, keyinfo)
             new_data = if updated_value == nil then value else updated_value
+            LOG("Saved", tostring(updated_value))
             return updated_value
         end)
+        LOG("finished")
         return new_data
     end, 1)
-    session._first_request_succeeded = true
+    session._.first_request_succeeded = true
 
-    for _, fn in session._waiting_for_saved do
+    for _, fn in session._.waiting_for_saved do
         fn()
     end
-    table.clear(session._waiting_for_saved)
+    table.clear(session._.waiting_for_saved)
 
-    session._next_save_opportunity = session._pull_delay
-    session._cached = if result == nil then session._cached else result
-    LOG(`{session._name} calling updated on force`, debug.info(session._updated, "sl"))
+    session._.next_save_opportunity = session._.pull_delay
+    session._.cached = if result == nil then session._.cached else result
+    LOG(`{session.name} calling updated on force`, debug.info(session._.updated, "sl"))
     run_updated(session)
 end
 
 local function thread<T>(session: Session<T>)
     while true do
-        LOG("performing auto-save in", session._next_save_opportunity, "for", session._name)
-        if session._next_save_opportunity > 0 then 
+        LOG("performing auto-save in", session._.next_save_opportunity, "for", session.name)
+        if session._.next_save_opportunity > 0 then 
             local dt = task.wait()
-            session._next_save_opportunity -= dt
+            session._.next_save_opportunity -= dt
             continue
         end
-        LOG("triggering auto-save for", session._name)
+        LOG("triggering auto-save for", session.name)
         local ok, err = pcall(pull_auto, session, {}) -- silence autosave error if emitted
-        -- if not ok then print(err) end
-        if session._why_bad then return end
+        if not ok then LOG("autosave error:", err) end
+        if session._.why_bad then return end
     end
 end
 
 local function patch_transaction<T, U...>(session: Session<T>, fn: Action<T, U...>, ...: U...)
+    local store = session._.store
 
     if flags.strict then
         for i = 1, select("#", ...) do
@@ -257,7 +276,7 @@ local function patch_transaction<T, U...>(session: Session<T>, fn: Action<T, U..
         end
 
         profilebegin("strict mode")
-        local start = session._cached.data
+        local start = session._.cached.data
         local a = util.clone(start)
         a = fn(a, ...)
 
@@ -276,26 +295,26 @@ local function patch_transaction<T, U...>(session: Session<T>, fn: Action<T, U..
         end
         profileend()
 
-        if session._options.schema and not session._options.schema(a) then
-            THROW("schema_validation_error", session._name, debug.info(fn, "n"))
+        if session._.options.schema and not session._.options.schema(a) then
+            THROW("schema_validation_error", session.name, debug.info(fn, "n"))
         end
     else
-        local result = fn(util.clone(session._cached.data), ...)
+        local result = fn(util.clone(session._.cached.data), ...)
 
-        if session._options.schema and not session._options.schema(result) then
-            THROW("schema_validation_error", session._name, debug.info(fn, "n"))
+        if session._.options.schema and not session._.options.schema(result) then
+            THROW("schema_validation_error", session.name, debug.info(fn, "n"))
         end
     end
 
     local transaction = flags.processing_transaction :: TransactionInfo
     local records = transaction.sessions[session] or { success = {}, failure = {} }
-    local record = actions.create_transaction_record(fn, ...)
+    local record = actions.create_transaction_record(store, fn, ...)
 
     if transaction.state == "failure" then
-        LOG(`Adding transaction action on failure "{record.fn}" for {session._name}`)
+        LOG(`Adding transaction action on failure "{record.fn}" for {session.name}`)
         table.insert(records.failure, record)
     elseif transaction.state == "success" then
-        LOG(`Adding transaction action on success "{record.fn}" for {session._name}`)
+        LOG(`Adding transaction action on success "{record.fn}" for {session.name}`)
         table.insert(records.success, record)
     end
 
@@ -303,11 +322,11 @@ local function patch_transaction<T, U...>(session: Session<T>, fn: Action<T, U..
 end
 
 local function patch_regular<T, U...>(session: Session<T>, fn: Action<T, U...>, ...: U...)
-    LOG(`Performing "{debug.info(fn, "n")}" for {session._name}`)
+    LOG(`Performing "{debug.info(fn, "n")}" for {session.name}`)
 
     if flags.strict then
         profilebegin("strict mode")
-        local start = session._cached.data
+        local start = session._.cached.data
         local a = util.clone(start)
         a = fn(a, ...)
 
@@ -326,32 +345,32 @@ local function patch_regular<T, U...>(session: Session<T>, fn: Action<T, U...>, 
         end
         profileend()
 
-        if session._options.schema and not session._options.schema(a) then
-            THROW("schema_validation_error", session._name, debug.info(fn, "n"))
+        if session._.options.schema and not session._.options.schema(a) then
+            THROW("schema_validation_error", session.name, debug.info(fn, "n"))
         end
 
-        table.insert(session._changes, actions.create_record(fn, ...) )
-        session._cached.data = a
+        table.insert(session._.changes, actions.create_record(fn, ...) )
+        session._.cached.data = a
         run_updated(session)
     else
-        local result = fn(session._cached.data, ...)
+        local result = fn(session._.cached.data, ...)
 
-        if session._options.schema and not session._options.schema(result) then
-            THROW("schema_validation_error", session._name, debug.info(fn, "n"))
+        if session._.options.schema and not session._.options.schema(result) then
+            THROW("schema_validation_error", session.name, debug.info(fn, "n"))
         end
 
-        table.insert(session._changes, actions.create_record(fn, ...) )
-        session._cached.data = result
+        table.insert(session._.changes, actions.create_record(fn, ...) )
+        session._.cached.data = result
         run_updated(session)
     end
 end
 
 local function commit_transaction_early<T, U...>(session: Session<T>, fn: Action<T, U...>, ...: U...)
-    LOG(`Performing "{debug.info(fn, "n")}" for {session._name}`)
+    LOG(`Performing "{debug.info(fn, "n")}" for {session.name}`)
 
     if flags.strict then
         profilebegin("strict mode")
-        local start = session._cached.data
+        local start = session._.cached.data
         local a = util.clone(start)
         a = fn(a, ...)
 
@@ -370,27 +389,27 @@ local function commit_transaction_early<T, U...>(session: Session<T>, fn: Action
         end
         profileend()
 
-        if session._options.schema and not session._options.schema(a) then
-            THROW("schema_validation_error", session._name, debug.info(fn, "n"))
+        if session._.options.schema and not session._.options.schema(a) then
+            THROW("schema_validation_error", session.name, debug.info(fn, "n"))
         end
 
-        session._cached.data = a
+        session._.cached.data = a
         run_updated(session)
     else
-        local result = fn(session._cached.data, ...)
+        local result = fn(session._.cached.data, ...)
 
-        if session._options.schema and not session._options.schema(result) then
-            THROW("schema_validation_error", session._name, debug.info(fn, "n"))
+        if session._.options.schema and not session._.options.schema(result) then
+            THROW("schema_validation_error", session.name, debug.info(fn, "n"))
         end
 
-        session._cached.data = result
+        session._.cached.data = result
     end
 end
 
 local function patch<T, U...>(session: Session<T>, fn: Action<T, U...>, ...: U...)
-    if session._finished then THROW("session_already_stopped") end
+    if session._.finished then THROW("session_already_stopped") end
 
-    actions.ASSERT_ACTION(fn)
+    actions.ASSERT_ACTION(session._.store, fn)
     if flags.processing_transaction then
         patch_transaction(session, fn, ...)
     else
@@ -399,66 +418,70 @@ local function patch<T, U...>(session: Session<T>, fn: Action<T, U...>, ...: U..
 end
 
 local function updated<T>(session: Session<T>, new: (data: T) -> ())
-    if session._finished then THROW("session_already_stopped") end
+    if session._.finished then THROW("session_already_stopped") end
     
-    session._updated = new
-    LOG(`{session._name} calling updated register`, debug.info(new, "sl"))
+    session._.updated = new
+    LOG(`{session.name} calling updated register`, debug.info(new, "sl"))
     run_updated(session)
 end
 
 local function stop<T>(session: Session<T>)
-    if session._finished ~= false then return end
-    session._finished = "saving"
-    session._updated = NOOP
-    task.cancel(session._thread)
+    if session._.finished ~= false then return end
+    session._.finished = "saving"
+    session._.updated = NOOP
+    task.cancel(session._.thread)
     task.spawn(function()
        force_pull(session)
-       session._finished = "done"
+       session._.finished = "done"
     end)
 end
 
 local function await<T>(session: Session<T>)
-    if session._finished == "done" then return end
+    if session._.finished == "done" then return end
 
     local ok = false
-    table.insert(session._waiting_for_saved, function()
+    table.insert(session._.waiting_for_saved, function()
         ok = true
     end)
     while not ok do task.wait() end
 end
 
 local function bad(session: Session<any>)
-    return session._why_bad
+    return session._.why_bad
 end
 
 local function add_userid<T>(session: Session<T>, user_id: number)
-    if session._finished then THROW("session_already_stopped") end
-    table.insert(session._user_ids, user_id)
+    if session._.finished then THROW("session_already_stopped") end
+    table.insert(session._.user_ids, user_id)
 end
 
 local function loaded(session: Session<any>)
-    return session._first_request_succeeded
+    return session._.first_request_succeeded
 end
 
 local function load_session<T>(self: Store<T>, key: string): Session<T>
     local session = {
-        _name = `{self._store.Name}:{key}`,
-        _store = self._store,
-        _options = self._options,
-        _changes = {},
-        _pending_transactions = {},
-        _waiting_for_saved = {},
-        _next_save_opportunity = 0,
-        _updated = NOOP,
-        _user_ids = {},
-        _pull_delay = self._options.pull_delay or AUTOSAVE_DELAY,
-        _cached = {
+        _ = {
+            store = self,
+            datastore = self._store,
+            options = self._options,
+            changes = {},
             pending_transactions = {},
-            migrations_performed = {},
-            data = self._options.default_data()
+            waiting_for_saved = {},
+            next_save_opportunity = 0,
+            updated = NOOP,
+            user_ids = {},
+            pull_delay = self._options.pull_delay or AUTOSAVE_DELAY,
+            cached = {
+                pending_transactions = {},
+                migrations_performed = {},
+                data = self._options.default_data()
+            },
+            first_request_succeeded = false,
+            finished = false,
         },
-        _first_request_succeeded = false,
-        _finished = false,
+        
+        name = `{self._store.Name}:{key}`,
         key = key
     }
 
@@ -470,7 +493,7 @@ local function load_session<T>(self: Store<T>, key: string): Session<T>
     session.bad = bad
     session.await = await
 
-    session._thread = task.spawn(thread, session :: any)
+    session._.thread = task.spawn(thread, session :: any)
 
     return session :: any
 end

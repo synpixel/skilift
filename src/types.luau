@@ -31,7 +31,13 @@ export type StoreOptions<T> = {
 export type Store<T> = {
     _store: DataStore,
     _options: StoreOptions<T>,
+    _allowed_actions: { [(T) -> T]: true },
+    _transaction_actions: { [(T) -> T]: string },
+    _transaction_names: { [string]: (T) -> T },
 
+    --- Action
+    action: <U...>(Store<T>, action: Action<T, U...>) -> Action<T, U...>,
+    transaction: <U...>(Store<T>, name: string, action: Action<T, U...>) -> Action<T, U...>,
     --- Starts a new safe session that frequently polls for updates.
     load: (Store<T>, key: string) -> Session<T>,
     --- Returns a object used to gain insight into a key without polling for new
@@ -53,32 +59,35 @@ export type Connection = {
 }
 
 export type Session<T> = {
-    _name: string,
-    _store: DataStore,
-    _options: StoreOptions<T>,
-    --- A list of changes that haven't been pushed yet.
-    _changes: { Action },
-    --- When the next refresh happens.
-    _next_save_opportunity: number,
-    --- Runs to reconcile the Datastores into the data.
-    _updated: (T) -> (),
-    --- The currently stored data.
-    _cached: StoredData<T>,
-    --- The thread responsible for autosaving.
-    _thread: thread,
-    --- Threads waiting to resume
-    _waiting_for_saved: { () -> () },
-    --- A reason why the session is not loaded properly
-    _why_bad: WhyBad?,
-    --- User IDs for GDPR
-    _user_ids: { number },
-    --- Indicates if a request has succeeded
-    _first_request_succeeded: boolean,
-    --- The delay between a pull
-    _pull_delay: number,
-    --- Indicates the state it's currently in.
-    _finished: false | "saving" | "done",
+    _: {
+        store: Store<T>,
+        datastore: DataStore,
+        options: StoreOptions<T>,
+        --- A list of changes that haven't been pushed yet.
+        changes: { Action },
+        --- When the next refresh happens.
+        next_save_opportunity: number,
+        --- Runs to reconcile the Datastores into the data.
+        updated: (T) -> (),
+        --- The currently stored data.
+        cached: StoredData<T>,
+        --- The thread responsible for autosaving.
+        thread: thread,
+        --- Threads waiting to resume
+        waiting_for_saved: { () -> () },
+        --- A reason why the session is not loaded properly
+        why_bad: string?,
+        --- User IDs for GDPR
+        user_ids: { number },
+        --- Indicates if a request has succeeded
+        first_request_succeeded: boolean,
+        --- The delay between a pull
+        pull_delay: number,
+        --- Indicates the state it's currently in.
+        finished: false | "saving" | "done",
+    },
 
+    name: string,
     key: string,
 
     --- Patches with the given update function. Fails if the data is locked.

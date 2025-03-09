@@ -1,14 +1,14 @@
+local types = require("./types")
 local flags = require("./flags")
 local THROW = require("./throw")
 
-local actions: { [Action]: true } = {}
-
+type Store<T=any> = types.Store<T>
 type Action<T=any, U...=...any> = (old: T, U...) -> T
 
-local transaction_actions: { [Action]: string } = {}
-local transaction_names: { [string]: Action } = {}
+local function ASSERT_ACTION<T>(store: Store<T>, action: Action<T>)
+    local transaction_actions = store._transaction_actions
+    local actions = store._allowed_actions
 
-local function ASSERT_ACTION(action: Action)
     if flags.processing_transaction and not transaction_actions[action] and actions[action] then
         THROW("transaction_invalid_action", debug.info(action, "sl"))
     elseif flags.processing_transaction and not transaction_actions[action] then
@@ -20,16 +20,22 @@ local function ASSERT_ACTION(action: Action)
     end
 end
 
-local function register_action(action: Action)
-    if flags.disable_new_actions then THROW("cannot_make_action") end
+
+local function register_action<T>(store: Store<T>, action: Action<T>)
+    local actions = store._allowed_actions
     actions[action] = true
     return action
 end
 
-local function register_transaction_action(action: Action, name: string)
-    if flags.disable_new_actions then THROW("cannot_make_action") end
+
+local function register_transaction_action<T>(store: Store<T>, name: string, action: Action<T>)
+    local transaction_actions = store._transaction_actions
+    local transaction_names = store._transaction_names
+    local actions = store._allowed_actions
+    
     transaction_actions[action] = name
     transaction_names[name] = action
+    actions[action] = true
     return action
 end
 
@@ -37,11 +43,14 @@ local function create_record(action: Action, ...: any)
     return { action, ... }
 end
 
-local function create_transaction_record(action: Action, ...: any)
+local function create_transaction_record<T>(store: Store<T>, action: Action<T>, ...: any)
+    local transaction_actions = store._transaction_actions
     return { fn = transaction_actions[action], values = {...} }
 end
 
-local function obtain_transaction_action(name: string)
+local function obtain_transaction_action<T>(store: Store<T>, name: string)
+    local transaction_names = store._transaction_names
+
     local action = transaction_names[name]
     if not action then THROW("unknown_transaction_action", name) end
     return action
@@ -57,11 +66,4 @@ return {
     create_transaction_record = create_transaction_record,
 
     obtain_transaction_action = obtain_transaction_action,
-
-    _ = {
-        transaction_actions = transaction_actions,
-        transaction_names = transaction_names,
-        actions = actions
-    }
-
 }

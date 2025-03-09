@@ -92,7 +92,7 @@ local function create_transaction(success: (() -> ()), failure: (() -> ())?)
         for session, info in transaction_info.sessions do
             LOG(`{uuid}: Pulling {session._name}`)
             for _, action in (if ok == true then info.success else info.failure) do
-                local fn = actions.obtain_transaction_action(action.fn)
+                local fn = actions.obtain_transaction_action(session._.store, action.fn)
                 Session.commit_transaction_early(session, fn, unpack(action.values))
             end
         end
@@ -103,7 +103,7 @@ local function create_transaction(success: (() -> ()), failure: (() -> ())?)
         for session, info in transaction_info.sessions do
             LOG(`{uuid}: Pulling {session._name}`)
             for _, action in info.failure do
-                local fn = actions.obtain_transaction_action(action.fn)
+                local fn = actions.obtain_transaction_action(session._.store, action.fn)
                 Session.commit_transaction_early(session, fn, unpack(action.values))
             end
         end
