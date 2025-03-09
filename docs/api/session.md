@@ -78,12 +78,21 @@ Returns a reason why data is considered bad. It's recommended to check this freq
 - Type
 
     ```luau
-    function session<T>:bad()
+    function session<T>:bad(): string?
     ```
 
 - Details
 
     When skilift encounters a session it determines to be "bad", it automatically calls `:stop()` on that session. This is okay, since sessions considered bad should never be edited by the server. It's recommended to kick the player when it's determined that their data is bad.
+
+### loaded
+
+Returns a boolean indicating if the player data has loaded. It's recommended to limit the interactions a player can perform while their data hasn't loaded.
+
+- Type
+
+    ```luau
+    function session<T>:loaded(): boolean
 
 ## Properties
 

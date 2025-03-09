@@ -16,11 +16,11 @@
 // }
 
 type Migration = { step: string, migrate: (old: unknown) => unknown }
-export  type Migrations = Migration[]
+export type Migrations = Migration[]
 
-export  type Action<T, U extends unknown[]> = (old: T, ...params: U) => T
+export type Action<T, U extends unknown[]> = (old: T, ...params: U) => T
 
-export  interface StoreOptions<DefaultData> {
+export interface StoreOptions<DefaultData> {
     /**
      * The name of the Data Store to retrieve.
      */
@@ -90,7 +90,14 @@ export declare class Session<T> {
      * stop that session to prevent the developer from saving said data. It's
      * recommended to kick the player when they have bad data.
      */
-    bad(this: Session<T>): "unrecognized_transaction" | "unknown_migration" | undefined
+    bad(this: Session<T>): string | undefined
+    /**
+     * Returns a boolean indicating if the player data has loaded. It's
+     * recommended to limit the interactions a player can perform while
+     * their data hasn't loaded.
+     * @param this 
+     */
+    loaded(this: Session<T>): boolean
 }
 
 export class View<T> {
@@ -114,5 +121,19 @@ export class Store<T> {
      * @param key 
      */
     public view(this: Store<T>, key: string): View<T>
+    /**
+     * Registers the given function as an action, allowing it to be used for
+     * patching data.
+     * @param this
+     * @param action
+     */
+    public action<U extends unknown[]>(this: Store<T>, action: Action<T, U>): Action<T, U>
+    /**
+     * Registers the given function as an action, allowing it to be used for
+     * patching within a transaction. These actions are deferred and not applied
+     * immediately. Unlike regular actions, these actions must be provided with
+     * a **unique** name.
+     */
+    public transaction<U extends unknown[]>(this: Store<T>, name: string, action: Action<T, U>): Action<T, U>
 
 }

@@ -10,11 +10,6 @@ import {
 
 declare namespace Skilift {
 
-    const action: {
-        normal: <T, U extends unknown[]>(this: void, action: Action<T, U>) => void
-        transaction: <T, U extends unknown[]>(this: void, action: Action<T, U>, name: string) => void
-    }
-
     /**
      * Creates a new store.
      * @param options 
