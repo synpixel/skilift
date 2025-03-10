@@ -26,6 +26,13 @@ type TransactionInfo = types.TransactionInfo
 type TransactionAction = types.TransactionAction
 type TransactionData = types.TransactionData
 
+local function merge<T>(a: { T }, b: { T }): { T }
+    local dst = table.create(#a + #b)
+    table.move(a, 1, #a, 1, dst)
+    table.move(b, 1, #b, #a + 1, dst)
+    return dst
+end
+
 local function migrate<T>(session: Session<T>, stored: StoredData<T>)
     local migrations = session._.options.migrations
 
@@ -165,15 +172,17 @@ local function update<T>(
 
     LOG(`Returning updated data for {session.name}`)
 
-    table.clear(changes)
     return stored, session._.user_ids
 end
 
 local function pull_auto<T>(session: Session<T>, transactions: { [TransactionId]: TransactionData })
-    local swap = session._.changes
+
+    local old_changes = session._.changes
     local store, key = session._.datastore, session.key
 
+    session._.changes = {}
     session._.next_save_opportunity = math.huge
+
     budget.delay_until_meets_budget("update", 5)
 
     LOG("saving", session.name)
@@ -181,13 +190,19 @@ local function pull_auto<T>(session: Session<T>, transactions: { [TransactionId]
         LOG("attempting auto-save")
         local new_data
         store:UpdateAsync(key, function(value, keyinfo)
+            local combined_changes_now = merge(old_changes, session._.changes)
+            
             LOG("retrieved", value)
-            local updated_value = update(session, swap, transactions, value, keyinfo)
+            local updated_value = update(session, combined_changes_now, transactions, value, keyinfo)
             new_data = if updated_value == nil then value else updated_value
             LOG(if updated_value ~= nil then "saved new data" else "cancelled update as no change has been made")
+            session._.changes = {}
+
             return updated_value
         end)
+
         LOG("FINISHED SAVE")
+        session._.changes = {}
         return new_data
     end)
 
@@ -216,9 +231,10 @@ end
 
 local function force_pull<T>(session: Session<T>)
     LOG("forcing save")
-    local swap = session._.changes
+    local old_changes = session._.changes
     local store, key = session._.datastore, session.key
 
+    session._.changes = {}
     session._.next_save_opportunity = math.huge
 
     local result: StoredData<T> = retry.regular_retry(function()
@@ -227,9 +243,14 @@ local function force_pull<T>(session: Session<T>)
         local new_data
         LOG("performing save")
         store:UpdateAsync(key, function(value, keyinfo)
-            local updated_value = update(session, swap, {}, value, keyinfo)
+            local combined_changes_now = merge(old_changes, session._.changes)
+            
+            LOG("retrieved", value)
+            local updated_value = update(session, combined_changes_now, {}, value, keyinfo)
             new_data = if updated_value == nil then value else updated_value
-            LOG("Saved", tostring(updated_value))
+            LOG(if updated_value ~= nil then "saved new data" else "cancelled update as no change has been made")
+            session._.changes = {}
+
             return updated_value
         end)
         LOG("finished")

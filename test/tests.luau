@@ -148,6 +148,7 @@ TEST("session", function()
 
         local function fn(value)
             n += 1
+            print("expected", expected, value.money)
             CHECK(value.money == expected)
         end
         
