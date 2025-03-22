@@ -39,7 +39,7 @@ local function migrate<T>(session: Session<T>, stored: StoredData<T>)
     if #migrations == #stored.migrations_performed then return false end
     LOG(`{session.name}: Performing Migration`)
     for i, migration in migrations do
-        if table.find(stored.migrations_performed, migration) then continue end
+        if table.find(stored.migrations_performed, migration.step) then continue end
         LOG(`{session.name}: Migration Step {migration.step}`)
 
         local result = migration.migrate(stored.data)
