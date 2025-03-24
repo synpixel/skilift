@@ -10,6 +10,8 @@
 /pesde.lock
 /build.rbxm
 
+/example/luau_packages
+/example/lune_packages
 /example/roblox_packages/
 /example/roblox_server_packages/
 /example/sourcemap.json

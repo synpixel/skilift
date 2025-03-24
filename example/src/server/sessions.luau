@@ -1,8 +1,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerScriptService = game:GetService("ServerScriptService")
 
-local skilift = require(ServerScriptService.packages.skilift)
+local skilift = require(ReplicatedStorage.packages.skilift)
 local net = require(ReplicatedStorage.shared.net)
 
 export type PlayerData = {
@@ -85,10 +84,8 @@ local function remove_item(data: PlayerData, item: string, n: number?)
     return data
 end
 
-skilift.action.normal(give_item)
-skilift.action.normal(remove_item)
-skilift.action.transaction(give_item, "give_item")
-skilift.action.transaction(remove_item, "remove_item")
+player_data_store:transaction("give_item", give_item)
+player_data_store:transaction("remove_item", remove_item)
 
 return {
     player_data = player_data,
