@@ -24,4 +24,4 @@ rojo = { name = "pesde/rojo", version = "^7.4.4", target = "lune" }
 
 [dependencies]
 vide = { wally = "wally#centau/vide", version = "^0.3.1" }
-skilift = { path = "F:/projects/skilift" }
+skilift = { name = "alicesaidhi/skilift", version = "^0.3.0" }
