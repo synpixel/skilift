@@ -5,7 +5,7 @@ authors = ["alicesaidhi"]
 repository = "https://github.com/alicesaidhi/skilift"
 license = "MIT"
 includes = [
-    "src",
+    "src/**",
     "LICENSE",
     "README.md",
     "pesde.toml"

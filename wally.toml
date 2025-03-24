@@ -5,7 +5,7 @@ license = "MIT"
 version = "0.3.0-rc.1"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
-exclude = ["luau_packages", "lune_packages", "out", ".vscode", ".pesde", "build.project.json", "pesde.toml", "pesde.lock", "rokit.toml", "test", "docs", "node_modules", "package.json", "package-lock.json", ".prettierrc", ".eslintrc"]
+exclude = ["luau_packages", "lune_packages", "out", ".vscode", ".pesde", "build.project.json", "pesde.toml", "pesde.lock", "rokit.toml", "test", "docs", "node_modules", "package.json", "package-lock.json", ".prettierrc", ".eslintrc", "example"]
 include = ["src", "default.project.json", "LICENSE"]
 
 [dependencies]
