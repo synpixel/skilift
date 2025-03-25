@@ -1,6 +1,6 @@
 {
   "name": "@rbxts/skilift",
-  "version": "0.3.0-rc.1",
+  "version": "0.3.0",
   "description": "A session lockless general datastore library",
   "main": "src/lib.luau",
 	"types": "src/lib.d.ts",
