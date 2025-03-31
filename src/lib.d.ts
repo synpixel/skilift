@@ -17,6 +17,11 @@ declare namespace Skilift {
     function store<DefaultData>(options: StoreOptions<DefaultData>): Store<DefaultData>
 
     /**
+     * Flushes cached transaction results
+     */
+    function flush(): void
+
+    /**
      * Enables strict mode. This is enabled by default in Roblox Studio. This
      * enables purity checks and json checks.
      * @param value 
