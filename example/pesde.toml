@@ -1,5 +1,5 @@
 name = "alicesaidhi/skilift"
-version = "0.3.0"
+version = "0.3.1-rc.1"
 private = true
 authors = ["alicesaidhi"]
 repository = "https://github.com/alicesaidhi/skilift"
@@ -24,4 +24,4 @@ rojo = { name = "pesde/rojo", version = "^7.4.4", target = "lune" }
 
 [dependencies]
 vide = { wally = "wally#centau/vide", version = "^0.3.1" }
-skilift = { name = "alicesaidhi/skilift", version = "^0.3.0" }
+skilift = { name = "alicesaidhi/skilift", version = "^0.3.1-rc.1" }

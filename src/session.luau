@@ -402,6 +402,7 @@ local function commit_transaction_early<T, U...>(session: Session<T>, fn: Action
         local ok, err: util.JSONError = pcall(util.check_json_valid, a)
 
         if ok == false then
+            print("esgjiaklghdyuasghasd", tostring(err))
             THROW("strict_not_json_from_action", debug.info(fn, "s"), tostring(err))
         end
         -- it's valid json, but we have to make sure it's pure

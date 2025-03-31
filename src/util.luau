@@ -32,6 +32,7 @@ type JSONErrorKind =
     | "only_use_string_key_dict"
     | "recursive_table"
     | "invalid_utf8"
+    | "saving_nil"
 export type JSONError = {
     why: JSONErrorKind,
     where: { string | number }
@@ -46,11 +47,12 @@ local function path(where: { string | number })
 end
 
 local function tostring_err(self: JSONError)
-    return if self.why == "bad_type" then `value at {path(self.where)} is not valid json`
+    return if self.why == "bad_type" then `value at {path(self.where)} isn't JSON-encodeable`
         elseif self.why == "non_real_number" then `value at {path(self.where)} is not a real number`
         elseif self.why == "only_use_string_key_dict" then `value at {path(self.where)} is a dictionary, but not all keys are strings`
         elseif self.why == "recursive_table" then `value at {path(self.where)} is recursive.`
         elseif self.why == "invalid_utf8" then `value at {path(self.where)} contains invalid utf-8 characters.`
+        elseif self.why == "saving_nil" then `attempt to save nil at {path(self.where)} - use false instead`
         else `unknown error at {path(self.where)}`
 end
 
@@ -104,6 +106,8 @@ local function check_json(x: {}, ...: string | number): boolean
         end
 
         return true
+    elseif typeof(x) == "nil" then
+        return throw("saving_nil")
     else
         return throw("bad_type", ...)
     end

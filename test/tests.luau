@@ -343,12 +343,18 @@ TEST("strict mode", function()
         return data
     end
 
+    local function valid_utf8(data)
+        data.test = "meow :3"
+        return data
+    end
+
     store:action(impure_action)
     store:action(non_real_number)
     store:action(non_string_key)
     store:action(recursive_table)
     store:action(bad_type)
     store:action(invalid_utf8)
+    store:action(valid_utf8)
     store:transaction("recursive-table", recursive_table)
 
     local function update(data: PlayerData)
@@ -390,6 +396,17 @@ TEST("strict mode", function()
         end)
 
         CHECK(ok == false)
+    end
+
+    do CASE "ok valid utf8"
+        local session = store:load("impure")
+
+        local ok, err = pcall(function()
+            session:patch(valid_utf8)
+        end)
+
+        print(err)
+        CHECK(ok == true)
     end
 
     do CASE "fail invalid json utf8"
@@ -443,7 +460,7 @@ TEST("strict mode", function()
         end)
 
         CHECK(ok == false)
-        CHECK(err:find("valid json"))
+        CHECK(err:find("encode"))
     end
 
     do CASE "fail invalid json transaction"

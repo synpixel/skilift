@@ -59,7 +59,7 @@ type Errors =
     | "session_already_stopped"
 
 local function THROW(err: Errors, ...: string)
-    error(string.format(ERRORS[err].msg, ...), 3)
+    error(string.format(ERRORS[err].msg, ...), 2)
 end
 
 return THROW
