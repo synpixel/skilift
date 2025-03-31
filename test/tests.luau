@@ -338,11 +338,17 @@ TEST("strict mode", function()
         return data
     end
 
+    local function invalid_utf8(data)
+        data.test = "\237\190\140"
+        return data
+    end
+
     store:action(impure_action)
     store:action(non_real_number)
     store:action(non_string_key)
     store:action(recursive_table)
     store:action(bad_type)
+    store:action(invalid_utf8)
     store:transaction("recursive-table", recursive_table)
 
     local function update(data: PlayerData)
@@ -381,6 +387,16 @@ TEST("strict mode", function()
 
         local ok = pcall(function()
             session:patch(impure_action)
+        end)
+
+        CHECK(ok == false)
+    end
+
+    do CASE "fail invalid json utf8"
+        local session = store:load("impure")
+
+        local ok = pcall(function()
+            session:patch(invalid_utf8)
         end)
 
         CHECK(ok == false)
