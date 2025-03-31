@@ -31,6 +31,7 @@ type JSONErrorKind =
     | "bad_type"
     | "only_use_string_key_dict"
     | "recursive_table"
+    | "invalid_utf8"
 export type JSONError = {
     why: JSONErrorKind,
     where: { string | number }
@@ -49,6 +50,7 @@ local function tostring_err(self: JSONError)
         elseif self.why == "non_real_number" then `value at {path(self.where)} is not a real number`
         elseif self.why == "only_use_string_key_dict" then `value at {path(self.where)} is a dictionary, but not all keys are strings`
         elseif self.why == "recursive_table" then `value at {path(self.where)} is recursive.`
+        elseif self.why == "invalid_utf8" then `value at {path(self.where)} contains invalid utf-8 characters.`
         else `unknown error at {path(self.where)}`
 end
 
@@ -72,6 +74,8 @@ end
 local references = setmetatable({}, {__mode = "ks"})
 local function check_json(x: {}, ...: string | number): boolean
     if typeof(x) == "string" then
+        local result = utf8.len(x)
+        if result == nil then throw("invalid_utf8", ...) end
         return true
     elseif typeof(x) == "number" then
         return if x ~= x then throw("non_real_number", ...)

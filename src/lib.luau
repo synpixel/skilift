@@ -1,6 +1,7 @@
 local types = require("./types")
 local store = require("./store")
 local transaction = require("./transaction")
+local checktransaction = require("./checktransaction")
 local flags = require("./flags")
 
 export type Store<T> = types.Store<T>
@@ -11,6 +12,8 @@ return {
     store = store,
 
     transaction = transaction.create_transaction,
+
+    flush = checktransaction.flush_transactions,
 
     strict = function(value: boolean?)
         if value ~= nil then
