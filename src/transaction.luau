@@ -7,16 +7,13 @@ local budget = require("./budget")
 local LOG = require("./log")
 local task = require("./task")
 local actions = require("./actions")
+local checktransaction = require("./checktransaction")
 
 local TRANSACTION_NAME = "_$SKILIFT_TRANSACTION"
 local TRANSACTION_SCOPE = "global"
 
 type TransactionInfo = types.TransactionInfo
 type TransactionId = types.TransactionId
-
-local function escape_transaction()
-
-end
 
 local function create_transaction(success: (() -> ()), failure: (() -> ())?)
     local TRANSACTION_STORE = flags.datastoreservice:GetDataStore(TRANSACTION_NAME, TRANSACTION_SCOPE)
@@ -85,9 +82,11 @@ local function create_transaction(success: (() -> ()), failure: (() -> ())?)
         -- everything has been saved, we can now mark the transaction as finished
         local ok, err = pcall(function()
             budget.delay_until_meets_budget("set", 1)
-            TRANSACTION_STORE:SetAsync(uuid, true)
+            TRANSACTION_STORE:SetAsync(uuid, "finished")
         end)
         LOG(`{uuid}: WRITTEN TO KEY STATUS {if ok then "SUCCESS" else "FAIL"}`)
+        
+        checktransaction.set_transaction_status(uuid, ok)
 
         for session, info in transaction_info.sessions do
             LOG(`{uuid}: Pulling {session._name}`)
@@ -99,6 +98,7 @@ local function create_transaction(success: (() -> ()), failure: (() -> ())?)
         
         return ok
     else
+        checktransaction.set_transaction_status(uuid, false)
         -- now that the transaction is done, we can pull all data again
         for session, info in transaction_info.sessions do
             LOG(`{uuid}: Pulling {session._name}`)
