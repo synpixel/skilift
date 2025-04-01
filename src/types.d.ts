@@ -18,7 +18,7 @@
 type Migration = { step: string, migrate: (old: unknown) => unknown }
 export type Migrations = Migration[]
 
-export type Action<T, U extends unknown[]> = (old: T, ...params: U) => T
+export type Action<T, U extends unknown[]> = (old: T, ...params: U) => T | undefined
 
 export interface StoreOptions<DefaultData> {
     /**
@@ -60,9 +60,9 @@ export declare class Session<T> {
      * Patches will apply immediately outside of a transaction.
      * @param this
      * @param fn 
-     * @param params 
+     * @param params
      */
-    patch<U extends unknown[]>(this: Session<T>, fn: Action<T, U>, ...params: U): void
+    patch<U extends unknown[]>(this: Session<T>, fn: Action<T, U>, ...params: U): boolean
     /**
      * Binds a callback to whenever a session is updated. Sessions should serve
      * as a source of truth for your game, so inside the callback you should

@@ -91,7 +91,7 @@ export type Session<T> = {
     key: string,
 
     --- Patches with the given update function. Fails if the data is locked.
-    patch: <U...>(Session<T>, fn: Action<T, U...>, U...) -> (),
+    patch: <U...>(Session<T>, fn: Action<T, U...>, U...) -> boolean,
     --- Binds a function to whenever the session receives updated data.
     --- This should be reconciled into your own game state. When called, it will
     --- run the function given immediately.
