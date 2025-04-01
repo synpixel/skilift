@@ -169,6 +169,46 @@ TEST("session", function()
         session:stop()
         CHECK(session._.datastore:GetAsync("patch").data.money == expected)
     end
+    
+    do CASE "skip update if nil"
+        local session = store:load("skip-update")
+        local expected = 0
+        local n = 0
+
+        local function increment_money(data: PlayerData, n: number)
+            data.money += n
+            return data
+        end
+
+        local function skip(data: PlayerData)
+            return nil
+        end
+
+        store:action(skip)
+        store:action(increment_money)
+
+        local function fn(value)
+            n += 1
+            print("expected", expected, value.money)
+            CHECK(value.money == expected)
+        end
+        
+        session:updated(fn)
+
+        CHECK(n == 1)
+        task.step(100)
+        CHECK(n == 2)
+        session:patch(skip)
+        CHECK(n == 2)
+        task.step(100)
+        CHECK(n == 3)
+        expected += 10
+        session:patch(increment_money, 10)
+        CHECK(n == 4)
+
+        session:stop()
+        CHECK(session._.datastore:GetAsync("skip-update").data.money == expected)
+    end
 
     do CASE "patch nested"
         local session = store:load("patch")

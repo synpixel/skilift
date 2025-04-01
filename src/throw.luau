@@ -39,6 +39,10 @@ local ERRORS = {
     },
     session_already_stopped = {
         msg = `Session already stopped!`
+    },
+
+    cannot_cancel_action = {
+        msg = `Cannot cancel the action "%s" by passing nil!`
     }
 }
 
@@ -57,6 +61,7 @@ type Errors =
     | "strict_pass_not_json_into_action"
     | "schema_validation_error"
     | "session_already_stopped"
+    | "cannot_cancel_action"
 
 local function THROW(err: Errors, ...: string)
     error(string.format(ERRORS[err].msg, ...), 2)

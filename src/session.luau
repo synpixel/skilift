@@ -56,7 +56,7 @@ local function perform_transaction<T>(store: Store<T>, stored: StoredData<T>, ac
     local values = action.values
 
     local result = fn(util.clone(stored.data), unpack(values))
-    if result == nil then THROW("action_does_not_return", action.fn) end
+    if result == nil then THROW("cannot_cancel_action", action.fn) end
     stored.data = result
 end
 
@@ -160,7 +160,7 @@ local function update<T>(
         local fn = action[1]
         LOG("Applying action with", unpack(action, 2))
         local result = fn(stored.data, unpack(action, 2))
-        if result == nil then THROW("action_does_not_return", debug.info(fn, "n")) end
+        if result == nil then continue end
         stored.data = result
         did_anything = true
     end
@@ -304,6 +304,8 @@ local function patch_transaction<T, U...>(session: Session<T>, fn: Action<T, U..
         local b = util.clone(start)
         b = fn(b, ...)
 
+        if a == nil and b == nil then return end
+
         -- check if it's valid json in strict mode
         local ok, err: util.JSONError = pcall(util.check_json_valid, a)
 
@@ -321,6 +323,8 @@ local function patch_transaction<T, U...>(session: Session<T>, fn: Action<T, U..
         end
     else
         local result = fn(util.clone(session._.cached.data), ...)
+
+        if result == nil then return end
 
         if session._.options.schema and not session._.options.schema(result) then
             THROW("schema_validation_error", session.name, debug.info(fn, "n"))
@@ -354,6 +358,8 @@ local function patch_regular<T, U...>(session: Session<T>, fn: Action<T, U...>, 
         local b = util.clone(start)
         b = fn(b, ...)
 
+        if a == nil and b == nil then return end
+
         -- check if it's valid json in strict mode
         local ok, err: util.JSONError = pcall(util.check_json_valid, a)
 
@@ -375,6 +381,8 @@ local function patch_regular<T, U...>(session: Session<T>, fn: Action<T, U...>, 
         run_updated(session)
     else
         local result = fn(session._.cached.data, ...)
+
+        if result == nil then return end
 
         if session._.options.schema and not session._.options.schema(result) then
             THROW("schema_validation_error", session.name, debug.info(fn, "n"))
@@ -398,11 +406,12 @@ local function commit_transaction_early<T, U...>(session: Session<T>, fn: Action
         local b = util.clone(start)
         b = fn(b, ...)
 
+        if a == nil or b == nil then THROW("cannot_cancel_action", debug.info(fn, "n")) end
+        
         -- check if it's valid json in strict mode
         local ok, err: util.JSONError = pcall(util.check_json_valid, a)
 
         if ok == false then
-            print("esgjiaklghdyuasghasd", tostring(err))
             THROW("strict_not_json_from_action", debug.info(fn, "s"), tostring(err))
         end
         -- it's valid json, but we have to make sure it's pure

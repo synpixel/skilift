@@ -1,4 +1,4 @@
-export type Action<T=any, U...=...any> = (old: T, U...) -> T
+export type Action<T=any, U...=...any> = (old: T, U...) -> T | nil
 export type JSON = string | number | boolean | buffer | { JSON } | { [string]: JSON }
 
 export type WhyBad = 
