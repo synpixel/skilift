@@ -94,7 +94,7 @@ end
 local function run_updated<T>(session: Session<T>)
     local data = session._.cached.data
     local fn = session._.updated
-    local copy = util.deep_freeze(util.clone(data))
+    local copy = if flags.strict then data else util.deep_freeze(util.clone(data))
 
     return fn(copy)
 end
