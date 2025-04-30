@@ -101,7 +101,7 @@ end
 
 local function update<T>(
     session: Session<T>,
-    changes: { Action },
+    changes: { { any } },
     pending_transactions: { [TransactionId]: TransactionData },
     stored: StoredData<T>,
     db_key_info: DataStoreKeyInfo?
@@ -158,7 +158,8 @@ local function update<T>(
 
     for _, action in changes do
         local fn = action[1]
-        LOG("Applying action with", unpack(action, 2))
+        local s, l = debug.info(action[1], "sl")
+        LOG(`Applying action {s}:{l} with`, unpack(action, 2))
         local result = fn(stored.data, unpack(action, 2))
         if result == nil then continue end
         stored.data = result
@@ -177,39 +178,38 @@ end
 
 local function pull_auto<T>(session: Session<T>, transactions: { [TransactionId]: TransactionData })
 
-    local old_changes = session._.changes
+    budget.delay_until_meets_budget("update", 5)
+
+    local stored_changes = {}
     local store, key = session._.datastore, session.key
 
-    session._.changes = {}
     session._.next_save_opportunity = math.huge
-
-    budget.delay_until_meets_budget("update", 5)
 
     LOG("saving", session.name)
     local ok, result: StoredData<T> = pcall(function()
         LOG("attempting auto-save")
         local new_data
         store:UpdateAsync(key, function(value, keyinfo)
-            local combined_changes_now = merge(old_changes, session._.changes)
+            stored_changes = merge(stored_changes, session._.changes)
+            session._.changes = {}
             
             LOG("retrieved", value)
-            local updated_value = update(session, combined_changes_now, transactions, value, keyinfo)
+            local updated_value = update(session, stored_changes, transactions, value, keyinfo)
             new_data = if updated_value == nil then value else updated_value
             LOG(if updated_value ~= nil then "saved new data" else "cancelled update as no change has been made")
-            session._.changes = {}
 
             return updated_value
         end)
 
         LOG("FINISHED SAVE")
-        session._.changes = {}
         return new_data
     end)
 
     session._.next_save_opportunity = session._.pull_delay
 
     if not ok then
-        error(`Failed to pull {result}`)
+        session._.changes = merge(stored_changes, session._.changes)
+        error(`Failed to pull. This issue is not because of {result}`)
     end
     
     session._.first_request_succeeded = true
@@ -219,8 +219,21 @@ local function pull_auto<T>(session: Session<T>, transactions: { [TransactionId]
     end
     table.clear(session._.waiting_for_saved)
 
+    if result == nil then
+        session._.why_bad = "missing data"
+    end
+
     if session._.why_bad then 
         error(`Failed to pull as the server has encountered some error: {session._.why_bad}`)
+    end
+    
+    for _, action in session._.changes do
+        local fn = action[1]
+        local s, l = debug.info(action[1], "sl")
+        LOG(`Applying action {s}:{l} with`, unpack(action, 2))
+        local new_data = fn(result.data, unpack(action, 2))
+        if new_data == nil then continue end
+        result.data = new_data
     end
 
     LOG("value is", result)
@@ -231,10 +244,9 @@ end
 
 local function force_pull<T>(session: Session<T>)
     LOG("forcing save")
-    local old_changes = session._.changes
+    local old_changes = {}
     local store, key = session._.datastore, session.key
 
-    session._.changes = {}
     session._.next_save_opportunity = math.huge
 
     local result: StoredData<T> = retry.regular_retry(function()
@@ -243,13 +255,13 @@ local function force_pull<T>(session: Session<T>)
         local new_data
         LOG("performing save")
         store:UpdateAsync(key, function(value, keyinfo)
-            local combined_changes_now = merge(old_changes, session._.changes)
+            old_changes = merge(old_changes, session._.changes)
+            session._.changes = {}
             
             LOG("retrieved", value)
-            local updated_value = update(session, combined_changes_now, {}, value, keyinfo)
+            local updated_value = update(session, old_changes, {}, value, keyinfo)
             new_data = if updated_value == nil then value else updated_value
             LOG(if updated_value ~= nil then "saved new data" else "cancelled update as no change has been made")
-            session._.changes = {}
 
             return updated_value
         end)
@@ -265,13 +277,23 @@ local function force_pull<T>(session: Session<T>)
 
     session._.next_save_opportunity = session._.pull_delay
     session._.cached = if result == nil then session._.cached else result
+
+    for _, action in session._.changes do
+        local fn = action[1]
+        local s, l = debug.info(action[1], "sl")
+        LOG(`Applying action {s}:{l} with`, unpack(action, 2))
+        local new_data = fn(result.data, unpack(action, 2))
+        if new_data == nil then continue end
+        result.data = new_data
+    end
+
     LOG(`{session.name} calling updated on force`, debug.info(session._.updated, "sl"))
     run_updated(session)
 end
 
 local function thread<T>(session: Session<T>)
     while true do
-        LOG("performing auto-save in", session._.next_save_opportunity, "for", session.name)
+        -- LOG("performing auto-save in", session._.next_save_opportunity, "for", session.name)
         if session._.next_save_opportunity > 0 then 
             local dt = task.wait()
             session._.next_save_opportunity -= dt
@@ -279,7 +301,7 @@ local function thread<T>(session: Session<T>)
         end
         LOG("triggering auto-save for", session.name)
         local ok, err = pcall(pull_auto, session, {}) -- silence autosave error if emitted
-        if not ok then LOG("autosave error:", err) end
+        if not ok then warn("autosave error:", err) end
         if session._.why_bad then return end
     end
 end
@@ -313,8 +335,9 @@ local function patch_transaction<T, U...>(session: Session<T>, fn: Action<T, U..
             THROW("strict_not_json_from_action", debug.info(fn, "s"), tostring(err))
         end
         -- it's valid json, but we have to make sure it's pure
-        if not util.delta_eq(a, b) then
-            THROW("strict_impure_action", debug.info(fn, "sl"))
+        local ok, where = util.delta_eq(a, b)
+        if not ok then
+            THROW("strict_impure_action", debug.info(fn, "sl"), where)
         end
         profileend()
 
@@ -348,7 +371,8 @@ local function patch_transaction<T, U...>(session: Session<T>, fn: Action<T, U..
 end
 
 local function patch_regular<T, U...>(session: Session<T>, fn: Action<T, U...>, ...: U...): boolean
-    LOG(`Performing "{debug.info(fn, "n")}" for {session.name}`)
+    local s, l = debug.info(fn, "sl")
+    LOG(`Performing {s}:{l} for {session.name}`)
 
     if flags.strict then
         profilebegin("strict mode")
@@ -368,8 +392,9 @@ local function patch_regular<T, U...>(session: Session<T>, fn: Action<T, U...>, 
             THROW("strict_not_json_from_action", debug.info(fn, "s"), tostring(err))
         end
         -- it's valid json, but we have to make sure it's pure
-        if not util.delta_eq(a, b) then
-            THROW("strict_impure_action", debug.info(fn, "sl"))
+        local ok, where = util.delta_eq(a, b)
+        if not ok then
+            THROW("strict_impure_action", debug.info(fn, "sl"), where)
         end
         profileend()
 
@@ -397,7 +422,8 @@ local function patch_regular<T, U...>(session: Session<T>, fn: Action<T, U...>, 
 end
 
 local function commit_transaction_early<T, U...>(session: Session<T>, fn: Action<T, U...>, ...: U...)
-    LOG(`Performing "{debug.info(fn, "n")}" for {session.name}`)
+    local s, l = debug.info(fn, "sl")
+    LOG(`Performing {s}:{l} for {session.name}`)
 
     if flags.strict then
         profilebegin("strict mode")
@@ -417,8 +443,9 @@ local function commit_transaction_early<T, U...>(session: Session<T>, fn: Action
             THROW("strict_not_json_from_action", debug.info(fn, "s"), tostring(err))
         end
         -- it's valid json, but we have to make sure it's pure
-        if not util.delta_eq(a, b) then
-            THROW("strict_impure_action", debug.info(fn, "sl"))
+        local ok, where = util.delta_eq(a, b)
+        if not ok then
+            THROW("strict_impure_action", debug.info(fn, "sl"), where)
         end
         profileend()
 

@@ -118,24 +118,23 @@ local function check_json_valid(x: {})
     return check_json(x, "root")
 end
 
-local function delta_eq<T>(a: T, b: T): boolean
+local function delta_eq<T>(a: T, b: T, ...: string): (boolean, string)
     if typeof(a) ~= typeof(b) then
-        return false
+        return false, table.concat({ ... }, ".")
     elseif typeof(a) == "buffer" and typeof(b) == "buffer" then
         return buffer.tostring(a) == buffer.tostring(b)
     elseif typeof(a) == "table" and typeof(b) == "table" then
-        if #a ~= #b then return false end
+        if #a ~= #b then return false, table.concat({ ... }, ".") end
 
         for key, value in a do
-            if not delta_eq(value, b[key]) then
-                return false
-            end
+            local ok, path = delta_eq(value, b[key], key, ...)
+            if not ok then return ok, path end
         end
 
         for key, value in b do
-            if not delta_eq(value, a[key]) then
-                return false
-            end
+            if a[key] ~= nil then continue end
+            local ok, path = delta_eq(value, a[key], key, ...)
+            if not ok then return ok, path end
         end
         
         return true

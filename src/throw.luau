@@ -25,7 +25,7 @@ local ERRORS = {
     },
 
     strict_impure_action = {
-        msg = `Action at %s:%s is impure and does not yield the same result`
+        msg = `Action at %s:%s is impure and does not yield the same result. Path: %s`
     },
     strict_not_json_from_action = {
         msg = `Action %s is not valid JSON: %s`
